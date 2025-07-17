@@ -1,0 +1,27 @@
+[server]
+host = "0.0.0.0"
+port = 8080
+
+[cors]
+enabled = true
+allow_origins = ["*"]
+
+[logging]
+level = "info" 
+
+[solana]
+# Solana RPC 配置  "ws://localhost:8900"
+rpc_url = "http://localhost:8899"
+ws_url = "ws://localhost:8900"
+# Spin Pet 程序ID (需要根据实际部署填写)
+program_id = "8j79sfEAgHjRmJS38TvXoRzqb4hhdzspmsR8sNNKX3ve"
+# 事件监听配置
+enable_event_listener = true
+reconnect_interval = 5000  # 重连间隔(毫秒)
+max_reconnect_attempts = 10
+# 事件处理配置
+event_buffer_size = 1000
+event_batch_size = 100
+
+[database]
+rocksdb_path = "./data/rocksdb" 
