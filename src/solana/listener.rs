@@ -234,9 +234,12 @@ impl SolanaEventListener {
         event_sender: &Option<mpsc::UnboundedSender<SpinPetEvent>>,
     ) -> anyhow::Result<()> {
         debug!("📨 Received WebSocket message: {}", message);
-        let json_msg: Value = serde_json::from_str(message)?;
         
-        // Check if this is a subscription confirmation message
+        // 1. 先解析整个JSON消息
+        let json_msg: Value = serde_json::from_str(message)?;
+        debug!("🔍 Parsed JSON: {}", json_msg);
+        
+        // 2. 检查是否是订阅确认消息
         if let Some(result) = json_msg.get("result") {
             if json_msg.get("params").is_none() {
                 info!("✅ Subscription confirmed: Subscription ID = {}", result);
@@ -244,50 +247,97 @@ impl SolanaEventListener {
             }
         }
         
-        // Check if this is a log notification
+        // 3. 检查是否是日志通知并提取日志
+        debug!("🔎 Looking for logs in message structure...");
         if let Some(params) = json_msg.get("params") {
+            debug!("✅ Found params: {}", params);
+            
             if let Some(result) = params.get("result") {
+                debug!("✅ Found result in params: {}", result);
+                
+                // 正确解析slot字段路径：在result.context.slot
+                let slot = match result.get("context").and_then(|ctx| ctx.get("slot")).and_then(|s| s.as_u64()) {
+                    Some(s) => {
+                        debug!("✅ Found slot: {}", s);
+                        s
+                    },
+                    None => {
+                        warn!("❌ No slot found in context - falling back to default slot value");
+                        // 使用一个默认值而不是直接返回，确保仍然能处理消息
+                        0
+                    }
+                };
+                
                 if let Some(value) = result.get("value") {
-                    if let Some(signature) = value.get("signature").and_then(|s| s.as_str()) {
-                        if let Some(slot) = value.get("slot").and_then(|s| s.as_u64()) {
-                            if let Some(logs) = value.get("logs").and_then(|l| l.as_array()) {
-                                let logs: Vec<String> = logs
-                                    .iter()
-                                    .filter_map(|l| l.as_str())
-                                    .map(|s| s.to_string())
-                                    .collect();
-                                
-                                debug!("📜 Processing transaction logs, signature: {}, slot: {}", signature, slot);
-                                
-                                // Parse events from logs
-                                match event_parser.parse_event_from_logs(&logs, signature, slot) {
-                                    Ok(events) => {
-                                        if events.is_empty() {
-                                            debug!("No events found in logs");
-                                        } else {
-                                            debug!("Found {} events in logs", events.len());
-                                            
-                                            if let Some(sender) = event_sender {
-                                                for event in events {
-                                                    debug!("📤 Sending event to processor");
-                                                    if let Err(e) = sender.send(event) {
-                                                        error!("Failed to send event to processor: {}", e);
-                                                    }
-                                                }
-                                            } else {
-                                                warn!("No event sender available");
+                    debug!("✅ Found value in result: {}", value);
+                    
+                    // 提取签名
+                    let signature = match value.get("signature").and_then(|s| s.as_str()) {
+                        Some(sig) => {
+                            debug!("✅ Found signature: {}", sig);
+                            sig
+                        },
+                        None => {
+                            warn!("❌ No signature found in message");
+                            return Ok(());
+                        }
+                    };
+                    
+                    // 提取日志数组
+                    if let Some(logs_array) = value.get("logs").and_then(|l| l.as_array()) {
+                        let logs: Vec<String> = logs_array
+                            .iter()
+                            .filter_map(|l| l.as_str())
+                            .map(|s| s.to_string())
+                            .collect();
+                        
+                        debug!("📜 Found {} logs entries", logs.len());
+                        
+                        // 打印每个日志条目用于调试
+                        for (i, log) in logs.iter().enumerate() {
+                            debug!("📝 Log[{}]: {}", i, log);
+                            // 特别检查包含 "Program data:" 的日志
+                            if log.contains("Program data:") {
+                                debug!("🔍 Found Program data log: {}", log);
+                            }
+                        }
+                        
+                        // 解析日志中的事件
+                        debug!("🔄 Parsing events from {} logs", logs.len());
+                        match event_parser.parse_event_from_logs(&logs, signature, slot) {
+                            Ok(events) => {
+                                if events.is_empty() {
+                                    debug!("⚠️ No events found in logs");
+                                } else {
+                                    debug!("✅ Found {} events in logs", events.len());
+                                    
+                                    if let Some(sender) = event_sender {
+                                        for event in events {
+                                            debug!("📤 Sending event to processor: {:?}", event);
+                                            if let Err(e) = sender.send(event) {
+                                                error!("Failed to send event to processor: {}", e);
                                             }
                                         }
-                                    }
-                                    Err(e) => {
-                                        error!("Failed to parse events from logs: {}", e);
+                                    } else {
+                                        warn!("No event sender available");
                                     }
                                 }
                             }
+                            Err(e) => {
+                                error!("❌ Failed to parse events from logs: {}", e);
+                            }
                         }
+                    } else {
+                        warn!("❌ No logs array found in message");
                     }
+                } else {
+                    warn!("❌ No value found in result");
                 }
+            } else {
+                warn!("❌ No result found in params");
             }
+        } else {
+            warn!("❌ No params found in message");
         }
         
         Ok(())

@@ -1,0 +1,2526 @@
+{
+  "address": "8j79sfEAgHjRmJS38TvXoRzqb4hhdzspmsR8sNNKX3ve",
+  "metadata": {
+    "name": "spinpet",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "buy",
+      "discriminator": [
+        102,
+        6,
+        61,
+        18,
+        1,
+        218,
+        235,
+        234
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint_account",
+          "writable": true
+        },
+        {
+          "name": "curve_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  114,
+                  114,
+                  111,
+                  119,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  117,
+                  114,
+                  118,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_sol_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  115,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "payer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "fee_recipient_account",
+          "writable": true
+        },
+        {
+          "name": "order0",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order1",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order2",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order3",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order4",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order5",
+          "writable": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "lp_pairs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "LpPair"
+              }
+            }
+          }
+        },
+        {
+          "name": "buy_token_amount",
+          "type": "u64"
+        },
+        {
+          "name": "max_sol_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "close_long",
+      "discriminator": [
+        71,
+        130,
+        194,
+        78,
+        245,
+        26,
+        127,
+        129
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint_account",
+          "writable": true
+        },
+        {
+          "name": "curve_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  114,
+                  114,
+                  111,
+                  119,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  117,
+                  114,
+                  118,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_sol_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  115,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_sol_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "fee_recipient_account",
+          "writable": true
+        },
+        {
+          "name": "order0",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order1",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order2",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order3",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order4",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order5",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "prev_order",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "close_order",
+          "writable": true
+        },
+        {
+          "name": "next_order",
+          "writable": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "lp_pairs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "LpPair"
+              }
+            }
+          }
+        },
+        {
+          "name": "sell_token_amount",
+          "type": "u64"
+        },
+        {
+          "name": "min_sol_output",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "close_short",
+      "discriminator": [
+        159,
+        16,
+        29,
+        141,
+        209,
+        68,
+        25,
+        0
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint_account",
+          "writable": true
+        },
+        {
+          "name": "curve_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  114,
+                  114,
+                  111,
+                  119,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  117,
+                  114,
+                  118,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_sol_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  115,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_sol_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "fee_recipient_account",
+          "writable": true
+        },
+        {
+          "name": "order0",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order1",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order2",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order3",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order4",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order5",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "prev_order",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "close_order",
+          "writable": true
+        },
+        {
+          "name": "next_order",
+          "writable": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "lp_pairs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "LpPair"
+              }
+            }
+          }
+        },
+        {
+          "name": "buy_token_amount",
+          "type": "u64"
+        },
+        {
+          "name": "max_sol_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "create",
+      "discriminator": [
+        24,
+        30,
+        200,
+        40,
+        5,
+        28,
+        7,
+        119
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint_account",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "curve_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  114,
+                  114,
+                  111,
+                  119,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  117,
+                  114,
+                  118,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_sol_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  115,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "params",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  97,
+                  109,
+                  115
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "symbol",
+          "type": "string"
+        },
+        {
+          "name": "uri",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [],
+      "args": []
+    },
+    {
+      "name": "long",
+      "discriminator": [
+        160,
+        20,
+        191,
+        80,
+        230,
+        179,
+        199,
+        90
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint_account",
+          "writable": true
+        },
+        {
+          "name": "curve_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  114,
+                  114,
+                  111,
+                  119,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  117,
+                  114,
+                  118,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_sol_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  115,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "fee_recipient_account",
+          "writable": true
+        },
+        {
+          "name": "order0",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order1",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order2",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order3",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order4",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order5",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "prev_order",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "self_order",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  108,
+                  102,
+                  95,
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  95,
+                  111,
+                  114,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payer"
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              },
+              {
+                "kind": "arg",
+                "path": "unique_seed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "next_order",
+          "writable": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "unique_seed",
+          "type": "u64"
+        },
+        {
+          "name": "lp_pairs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "LpPair"
+              }
+            }
+          }
+        },
+        {
+          "name": "buy_token_amount",
+          "type": "u64"
+        },
+        {
+          "name": "max_sol_amount",
+          "type": "u64"
+        },
+        {
+          "name": "margin_sol",
+          "type": "u64"
+        },
+        {
+          "name": "close_price",
+          "type": "u128"
+        }
+      ]
+    },
+    {
+      "name": "sell",
+      "discriminator": [
+        51,
+        230,
+        133,
+        164,
+        1,
+        127,
+        131,
+        173
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint_account",
+          "writable": true
+        },
+        {
+          "name": "curve_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  114,
+                  114,
+                  111,
+                  119,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  117,
+                  114,
+                  118,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_sol_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  115,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "payer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "fee_recipient_account",
+          "writable": true
+        },
+        {
+          "name": "order0",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order1",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order2",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order3",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order4",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order5",
+          "writable": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "lp_pairs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "LpPair"
+              }
+            }
+          }
+        },
+        {
+          "name": "sell_token_amount",
+          "type": "u64"
+        },
+        {
+          "name": "min_sol_output",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "short",
+      "discriminator": [
+        217,
+        218,
+        13,
+        226,
+        168,
+        94,
+        252,
+        106
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint_account",
+          "writable": true
+        },
+        {
+          "name": "curve_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  114,
+                  114,
+                  111,
+                  119,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  117,
+                  114,
+                  118,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_sol_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  115,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "fee_recipient_account",
+          "writable": true
+        },
+        {
+          "name": "order0",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order1",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order2",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order3",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order4",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order5",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "prev_order",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "self_order",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  108,
+                  102,
+                  95,
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  95,
+                  111,
+                  114,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payer"
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              },
+              {
+                "kind": "arg",
+                "path": "unique_seed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "next_order",
+          "writable": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "unique_seed",
+          "type": "u64"
+        },
+        {
+          "name": "lp_pairs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "LpPair"
+              }
+            }
+          }
+        },
+        {
+          "name": "borrow_sell_token_amount",
+          "type": "u64"
+        },
+        {
+          "name": "min_sol_output",
+          "type": "u64"
+        },
+        {
+          "name": "margin_sol",
+          "type": "u64"
+        },
+        {
+          "name": "close_price",
+          "type": "u128"
+        }
+      ]
+    },
+    {
+      "name": "update_params",
+      "discriminator": [
+        108,
+        178,
+        190,
+        95,
+        94,
+        203,
+        116,
+        20
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "params",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  97,
+                  109,
+                  115
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "base_swap_fee",
+          "type": {
+            "option": "u16"
+          }
+        },
+        {
+          "name": "base_borrow_fee",
+          "type": {
+            "option": "u16"
+          }
+        },
+        {
+          "name": "base_borrow_duration",
+          "type": {
+            "option": "u32"
+          }
+        },
+        {
+          "name": "base_borrow_start_price_deviation",
+          "type": {
+            "option": "u128"
+          }
+        },
+        {
+          "name": "fee_recipient",
+          "type": {
+            "option": "pubkey"
+          }
+        },
+        {
+          "name": "new_admin",
+          "type": {
+            "option": "pubkey"
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "BorrowingBondingCurve",
+      "discriminator": [
+        185,
+        14,
+        55,
+        130,
+        206,
+        115,
+        17,
+        19
+      ]
+    },
+    {
+      "name": "MarginOrder",
+      "discriminator": [
+        174,
+        240,
+        236,
+        75,
+        165,
+        202,
+        223,
+        242
+      ]
+    },
+    {
+      "name": "Params",
+      "discriminator": [
+        129,
+        232,
+        120,
+        183,
+        156,
+        198,
+        9,
+        242
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "BuySellEvent",
+      "discriminator": [
+        98,
+        208,
+        120,
+        60,
+        93,
+        32,
+        19,
+        180
+      ]
+    },
+    {
+      "name": "ForceLiquidateEvent",
+      "discriminator": [
+        234,
+        196,
+        183,
+        105,
+        40,
+        26,
+        206,
+        48
+      ]
+    },
+    {
+      "name": "FullCloseEvent",
+      "discriminator": [
+        22,
+        244,
+        113,
+        245,
+        154,
+        168,
+        109,
+        139
+      ]
+    },
+    {
+      "name": "LongShortEvent",
+      "discriminator": [
+        27,
+        69,
+        20,
+        116,
+        58,
+        250,
+        95,
+        220
+      ]
+    },
+    {
+      "name": "PartialCloseEvent",
+      "discriminator": [
+        133,
+        94,
+        3,
+        222,
+        24,
+        68,
+        69,
+        155
+      ]
+    },
+    {
+      "name": "TokenCreatedEvent",
+      "discriminator": [
+        96,
+        122,
+        113,
+        138,
+        50,
+        227,
+        149,
+        57
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "EmptySupply",
+      "msg": "流动性池中的代币供应为空"
+    },
+    {
+      "code": 6001,
+      "name": "CalculationFailure",
+      "msg": "计算溢出错误"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidInput",
+      "msg": "提供的数值无效"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidFee",
+      "msg": "费率超出允许范围"
+    },
+    {
+      "code": 6004,
+      "name": "EmptyRecipientsList",
+      "msg": "接收者列表不能为空"
+    },
+    {
+      "code": 6005,
+      "name": "InsufficientFunds",
+      "msg": "发送者余额不足"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidLinkedListOperation",
+      "msg": "链表操作无效"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidPriceRange",
+      "msg": "订单价格区间无效"
+    },
+    {
+      "code": 6008,
+      "name": "Unauthorized",
+      "msg": "未授权的操作"
+    },
+    {
+      "code": 6009,
+      "name": "RequiredParameter",
+      "msg": "初始化时所有参数都是必需的"
+    },
+    {
+      "code": 6010,
+      "name": "LiquidityLocked",
+      "msg": "流动性锁定，无法插入订单"
+    },
+    {
+      "code": 6011,
+      "name": "InsufficientLiquidationValue",
+      "msg": "强制平仓后获得的SOL不足以偿还借款"
+    },
+    {
+      "code": 6012,
+      "name": "MathError",
+      "msg": "数学计算错误"
+    },
+    {
+      "code": 6013,
+      "name": "PriceSpanTooSmall",
+      "msg": "价格区间太小"
+    },
+    {
+      "code": 6014,
+      "name": "MathOverflow",
+      "msg": "数学运算溢出"
+    },
+    {
+      "code": 6015,
+      "name": "CurveCalculationError",
+      "msg": "曲线计算错误"
+    },
+    {
+      "code": 6016,
+      "name": "ExceedsMaxSolAmount",
+      "msg": "超出最大SOL金额限制"
+    },
+    {
+      "code": 6017,
+      "name": "InsufficientTokenOutput",
+      "msg": "获得的代币数量不足"
+    },
+    {
+      "code": 6018,
+      "name": "InsufficientTokenBalance",
+      "msg": "代币余额不足"
+    },
+    {
+      "code": 6019,
+      "name": "InsufficientSolOutput",
+      "msg": "获得的SOL数量不足"
+    },
+    {
+      "code": 6020,
+      "name": "InsufficientRepayment",
+      "msg": "平仓收益不足以偿还借款"
+    },
+    {
+      "code": 6021,
+      "name": "InsufficientBorrowingReserve",
+      "msg": "借款请求超过可用储备"
+    },
+    {
+      "code": 6022,
+      "name": "InsufficientTokenSale",
+      "msg": "实际卖出的代币数量不足"
+    },
+    {
+      "code": 6023,
+      "name": "InsufficientLiquidity",
+      "msg": "当前订单可提供的流动性不足"
+    },
+    {
+      "code": 6024,
+      "name": "TokenAmountDifferenceOutOfRange",
+      "msg": "保证金交易时区间计算差值太大"
+    },
+    {
+      "code": 6025,
+      "name": "ArithmeticOverflow",
+      "msg": "计算过程中发生数学溢出"
+    },
+    {
+      "code": 6026,
+      "name": "BorrowAmountMismatch",
+      "msg": "借款金额与锁定代币数量不匹配"
+    },
+    {
+      "code": 6027,
+      "name": "CloseFeeCalculationError",
+      "msg": "平仓手续费计算错误"
+    },
+    {
+      "code": 6028,
+      "name": "InsufficientCloseProfit",
+      "msg": "平仓收益不足"
+    },
+    {
+      "code": 6029,
+      "name": "CloseTransferError",
+      "msg": "平仓转账错误"
+    },
+    {
+      "code": 6030,
+      "name": "UpHeadNotEmpty",
+      "msg": "上涨链表头不为空，无法进行普通买入交易"
+    },
+    {
+      "code": 6031,
+      "name": "DownHeadNotEmpty",
+      "msg": "下跌链表头不为空，无法进行普通卖出交易"
+    },
+    {
+      "code": 6032,
+      "name": "UpHeadOrderMismatch",
+      "msg": "上涨链表头与orders[0]不匹配"
+    },
+    {
+      "code": 6033,
+      "name": "DownHeadOrderMismatch",
+      "msg": "下跌链表头与orders[0]不匹配"
+    },
+    {
+      "code": 6034,
+      "name": "InsufficientMargin",
+      "msg": "保证金不足"
+    },
+    {
+      "code": 6035,
+      "name": "InsufficientMinimumMargin",
+      "msg": "保证金低于最小限制"
+    },
+    {
+      "code": 6036,
+      "name": "InvalidAccountOwner",
+      "msg": "账户所有者不正确"
+    },
+    {
+      "code": 6037,
+      "name": "AccountBorrowFailed",
+      "msg": "账户借用失败"
+    },
+    {
+      "code": 6038,
+      "name": "SellAmountExceedsOrderAmount",
+      "msg": "卖出数量超过订单持有的代币数量"
+    },
+    {
+      "code": 6039,
+      "name": "OrderNotExpiredMustCloseByOwner",
+      "msg": "未超时订单必须由开仓者平仓"
+    },
+    {
+      "code": 6040,
+      "name": "SettlementAddressMustBeOwnerAddress",
+      "msg": "结算地址必须是开仓地址"
+    },
+    {
+      "code": 6041,
+      "name": "BuyAmountExceedsOrderAmount",
+      "msg": "买入数量超过订单持有的代币数量"
+    },
+    {
+      "code": 6042,
+      "name": "InsufficientTradeAmount",
+      "msg": "交易数量低于最小限制"
+    },
+    {
+      "code": 6043,
+      "name": "RemainingTokenAmountTooSmall",
+      "msg": "剩余代币数量低于最小交易限制"
+    },
+    {
+      "code": 6044,
+      "name": "PriceCalculationError",
+      "msg": "价格计算错误"
+    },
+    {
+      "code": 6045,
+      "name": "InvalidFeeRecipientAccount",
+      "msg": "手续费接收账户地址不匹配"
+    },
+    {
+      "code": 6046,
+      "name": "InvalidOrderMintAddress",
+      "msg": "订单mint地址与curve账户mint不匹配"
+    },
+    {
+      "code": 6047,
+      "name": "InsufficientStopLossLiquidity",
+      "msg": "止损单预留流动性不足"
+    },
+    {
+      "code": 6048,
+      "name": "InvalidOrderIndex",
+      "msg": "无效的订单索引"
+    }
+  ],
+  "types": [
+    {
+      "name": "BorrowingBondingCurve",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lp_token_reserve",
+            "type": "u64"
+          },
+          {
+            "name": "lp_sol_reserve",
+            "type": "u64"
+          },
+          {
+            "name": "price",
+            "type": "u128"
+          },
+          {
+            "name": "borrow_token_reserve",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_sol_reserve",
+            "type": "u64"
+          },
+          {
+            "name": "swap_fee",
+            "type": "u16"
+          },
+          {
+            "name": "borrow_fee",
+            "type": "u16"
+          },
+          {
+            "name": "fee_discount_flag",
+            "type": "u8"
+          },
+          {
+            "name": "fee_recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "borrow_duration",
+            "type": "u32"
+          },
+          {
+            "name": "borrow_start_price_deviation",
+            "type": "u128"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "up_head",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "down_head",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BuySellEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "payer",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "is_buy",
+            "type": "bool"
+          },
+          {
+            "name": "token_amount",
+            "type": "u64"
+          },
+          {
+            "name": "sol_amount",
+            "type": "u64"
+          },
+          {
+            "name": "latest_price",
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ForceLiquidateEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "payer",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_pda",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FullCloseEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "payer",
+            "type": "pubkey"
+          },
+          {
+            "name": "user_sol_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "is_close_long",
+            "type": "bool"
+          },
+          {
+            "name": "final_token_amount",
+            "type": "u64"
+          },
+          {
+            "name": "final_sol_amount",
+            "type": "u64"
+          },
+          {
+            "name": "user_close_profit",
+            "type": "u64"
+          },
+          {
+            "name": "latest_price",
+            "type": "u128"
+          },
+          {
+            "name": "order_pda",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LongShortEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "payer",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_pda",
+            "type": "pubkey"
+          },
+          {
+            "name": "latest_price",
+            "type": "u128"
+          },
+          {
+            "name": "order_type",
+            "type": "u8"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "lock_lp_start_price",
+            "type": "u128"
+          },
+          {
+            "name": "lock_lp_end_price",
+            "type": "u128"
+          },
+          {
+            "name": "lock_lp_sol_amount",
+            "type": "u64"
+          },
+          {
+            "name": "lock_lp_token_amount",
+            "type": "u64"
+          },
+          {
+            "name": "start_time",
+            "type": "u32"
+          },
+          {
+            "name": "end_time",
+            "type": "u32"
+          },
+          {
+            "name": "margin_sol_amount",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_amount",
+            "type": "u64"
+          },
+          {
+            "name": "position_asset_amount",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_fee",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LpPair",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sol_amount",
+            "type": "u64"
+          },
+          {
+            "name": "token_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarginOrder",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "order_type",
+            "type": "u8"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "next_order",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "prev_order",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "lock_lp_start_price",
+            "type": "u128"
+          },
+          {
+            "name": "lock_lp_end_price",
+            "type": "u128"
+          },
+          {
+            "name": "lock_lp_sol_amount",
+            "type": "u64"
+          },
+          {
+            "name": "lock_lp_token_amount",
+            "type": "u64"
+          },
+          {
+            "name": "start_time",
+            "type": "u32"
+          },
+          {
+            "name": "end_time",
+            "type": "u32"
+          },
+          {
+            "name": "margin_sol_amount",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_amount",
+            "type": "u64"
+          },
+          {
+            "name": "position_asset_amount",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_fee",
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Params",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "base_swap_fee",
+            "type": "u16"
+          },
+          {
+            "name": "base_borrow_fee",
+            "type": "u16"
+          },
+          {
+            "name": "base_borrow_duration",
+            "type": "u32"
+          },
+          {
+            "name": "base_borrow_start_price_deviation",
+            "type": "u128"
+          },
+          {
+            "name": "fee_recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PartialCloseEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "payer",
+            "type": "pubkey"
+          },
+          {
+            "name": "user_sol_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "is_close_long",
+            "type": "bool"
+          },
+          {
+            "name": "final_token_amount",
+            "type": "u64"
+          },
+          {
+            "name": "final_sol_amount",
+            "type": "u64"
+          },
+          {
+            "name": "user_close_profit",
+            "type": "u64"
+          },
+          {
+            "name": "latest_price",
+            "type": "u128"
+          },
+          {
+            "name": "order_pda",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_type",
+            "type": "u8"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "lock_lp_start_price",
+            "type": "u128"
+          },
+          {
+            "name": "lock_lp_end_price",
+            "type": "u128"
+          },
+          {
+            "name": "lock_lp_sol_amount",
+            "type": "u64"
+          },
+          {
+            "name": "lock_lp_token_amount",
+            "type": "u64"
+          },
+          {
+            "name": "start_time",
+            "type": "u32"
+          },
+          {
+            "name": "end_time",
+            "type": "u32"
+          },
+          {
+            "name": "margin_sol_amount",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_amount",
+            "type": "u64"
+          },
+          {
+            "name": "position_asset_amount",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_fee",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TokenCreatedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "payer",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "curve_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "name": "uri",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ]
+}

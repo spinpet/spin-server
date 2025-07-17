@@ -160,7 +160,7 @@ pub async fn query_mints(
 /// Query order information
 #[utoipa::path(
     get,
-    path = "/api/orders",
+    path = "/api/mint_orders",
     params(OrderQueryParams),
     responses(
         (status = 200, description = "Query successful", body = OrderQueryResponse),
@@ -201,7 +201,7 @@ pub async fn query_orders(
 /// Query user transaction information
 #[utoipa::path(
     get,
-    path = "/api/user",
+    path = "/api/user_event",
     params(UserQueryParams),
     responses(
         (status = 200, description = "Query successful", body = UserQueryResponse),

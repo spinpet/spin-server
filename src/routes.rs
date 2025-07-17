@@ -92,10 +92,10 @@ pub fn create_router(config: &Config, app_state: Arc<AppState>) -> Router {
         .route("/api/details", post(handlers::query_mint_details))
         
         // Order query routes
-        .route("/api/orders", get(handlers::query_orders))
+        .route("/api/mint_orders", get(handlers::query_orders))
         
         // User transaction query routes
-        .route("/api/user", get(handlers::query_user_transactions))
+        .route("/api/user_event", get(handlers::query_user_transactions))
         
         // OpenAPI specification
         .route("/api-docs/openapi.json", get(serve_openapi))

@@ -7,6 +7,7 @@ use borsh::BorshDeserialize;
 use tracing::{debug, error, warn};
 use serde_with::{serde_as, DisplayFromStr};
 
+
 /// Event discriminators - correct discriminators from IDL file
 pub const TOKEN_CREATED_EVENT_DISCRIMINATOR: [u8; 8] = [96, 122, 113, 138, 50, 227, 149, 57];
 pub const BUY_SELL_EVENT_DISCRIMINATOR: [u8; 8] = [98, 208, 120, 60, 93, 32, 19, 180];
@@ -180,27 +181,91 @@ impl EventParser {
     ) -> anyhow::Result<Vec<SpinPetEvent>> {
         let mut events = Vec::new();
         
+        debug!("🔍 Starting to parse {} log lines", logs.len());
+        
         // Find program event logs
-        for log in logs {
+        for (i, log) in logs.iter().enumerate() {
+            debug!("📝 Checking log[{}]: {}", i, log);
+            
             if log.starts_with("Program data:") {
-                let data_part = log.strip_prefix("Program data: ").unwrap_or("");
-                debug!("🔍 Parsing program data: {}", data_part);
-                if let Ok(event_data) = base64::engine::general_purpose::STANDARD.decode(data_part) {
-                    debug!("📊 Successfully decoded Base64 data, length: {}", event_data.len());
-                    match self.parse_event_data(&event_data, signature, slot) {
-                        Ok(Some(event)) => {
-                            debug!("✅ Successfully parsed event, adding to event list");
-                            events.push(event);
-                        }
-                        Ok(None) => {
-                            debug!("⚠️ Could not parse event - skipping this data");
-                        }
-                        Err(e) => {
-                            warn!("❌ Failed to parse event: {} - skipping this data", e);
-                        }
+                debug!("✨ Found Program data log at index {}", i);
+                let data_part = match log.strip_prefix("Program data: ") {
+                    Some(data) => {
+                        debug!("🔍 Extracted program data: {}", data);
+                        data.trim()
+                    },
+                    None => {
+                        warn!("⚠️ Failed to strip prefix from Program data log");
+                        continue;
                     }
+                };
+                
+                // 尝试Base64解码
+                let event_data = match base64::engine::general_purpose::STANDARD.decode(data_part) {
+                    Ok(data) => {
+                        debug!("📊 Successfully decoded Base64 data, length: {}", data.len());
+                        // 打印前16个字节用于调试判别器
+                        if data.len() >= 16 {
+                            debug!("🔍 First 16 bytes: {:?}", &data[..16]);
+                            if data.len() >= 8 {
+                                debug!("🔑 Discriminator bytes: {:?}", &data[0..8]);
+                            }
+                        }
+                        data
+                    },
+                    Err(e) => {
+                        warn!("⚠️ Base64 decoding failed for: {} - Error: {}", data_part, e);
+                        continue;
+                    }
+                };
+                
+                // 确保数据长度足够
+                if event_data.len() < 8 {
+                    warn!("⚠️ Decoded data too short ({} bytes), need at least 8 bytes for discriminator", event_data.len());
+                    continue;
+                }
+                
+                // 提取判别器并打印
+                let discriminator = &event_data[0..8];
+                debug!("🔑 Event discriminator: {:?}", discriminator);
+                
+                // 打印所有定义的判别器以进行比较
+                debug!("💡 Defined discriminators: TOKEN_CREATED={:?}, BUY_SELL={:?}, LONG_SHORT={:?}, FORCE_LIQUIDATE={:?}, FULL_CLOSE={:?}, PARTIAL_CLOSE={:?}", 
+                       TOKEN_CREATED_EVENT_DISCRIMINATOR,
+                       BUY_SELL_EVENT_DISCRIMINATOR, 
+                       LONG_SHORT_EVENT_DISCRIMINATOR,
+                       FORCE_LIQUIDATE_EVENT_DISCRIMINATOR,
+                       FULL_CLOSE_EVENT_DISCRIMINATOR,
+                       PARTIAL_CLOSE_EVENT_DISCRIMINATOR);
+                
+                // 比较判别器并打印结果
+                if discriminator == TOKEN_CREATED_EVENT_DISCRIMINATOR {
+                    debug!("✓ Matched TOKEN_CREATED_EVENT_DISCRIMINATOR");
+                } else if discriminator == BUY_SELL_EVENT_DISCRIMINATOR {
+                    debug!("✓ Matched BUY_SELL_EVENT_DISCRIMINATOR");
+                } else if discriminator == LONG_SHORT_EVENT_DISCRIMINATOR {
+                    debug!("✓ Matched LONG_SHORT_EVENT_DISCRIMINATOR");
+                } else if discriminator == FORCE_LIQUIDATE_EVENT_DISCRIMINATOR {
+                    debug!("✓ Matched FORCE_LIQUIDATE_EVENT_DISCRIMINATOR");
+                } else if discriminator == FULL_CLOSE_EVENT_DISCRIMINATOR {
+                    debug!("✓ Matched FULL_CLOSE_EVENT_DISCRIMINATOR");
+                } else if discriminator == PARTIAL_CLOSE_EVENT_DISCRIMINATOR {
+                    debug!("✓ Matched PARTIAL_CLOSE_EVENT_DISCRIMINATOR");
                 } else {
-                    warn!("⚠️ Base64 decoding failed: {}", data_part);
+                    debug!("❌ No matching discriminator found");
+                }
+                
+                match self.parse_event_data(&event_data, signature, slot) {
+                    Ok(Some(event)) => {
+                        debug!("✅ Successfully parsed event: {:?}", event);
+                        events.push(event);
+                    }
+                    Ok(None) => {
+                        debug!("⚠️ Could not parse event - skipping this data");
+                    }
+                    Err(e) => {
+                        warn!("❌ Failed to parse event: {} - skipping this data", e);
+                    }
                 }
             }
         }
