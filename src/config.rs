@@ -33,9 +33,13 @@ pub struct SolanaConfig {
     pub ws_url: String,
     pub program_id: String,
     pub enable_event_listener: bool,
+    #[allow(dead_code)]
     pub reconnect_interval: u64,
+    #[allow(dead_code)]
     pub max_reconnect_attempts: u32,
+    #[allow(dead_code)]
     pub event_buffer_size: usize,
+    #[allow(dead_code)]
     pub event_batch_size: usize,
 }
 

@@ -483,7 +483,7 @@ Query order information for a specific token.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `mint` | string | Yes | Token account address |
-| `type` | string | Yes | Order type, values: `up_orders` (long orders) or `down_orders` (short orders) |
+| `type` | string | Yes | Order type, values: `up_orders` (short orders) or `down_orders` (long orders) |
 
 #### Response
 

@@ -224,6 +224,10 @@
           "writable": true
         },
         {
+          "name": "base_fee_recipient_account",
+          "writable": true
+        },
+        {
           "name": "order0",
           "writable": true,
           "optional": true
@@ -250,6 +254,76 @@
         },
         {
           "name": "order5",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order6",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order7",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order8",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order9",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order10",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order11",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order12",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order13",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order14",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order15",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order16",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order17",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order18",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order19",
           "writable": true,
           "optional": true
         }
@@ -402,6 +476,24 @@
           "writable": true
         },
         {
+          "name": "base_fee_recipient_account",
+          "writable": true
+        },
+        {
+          "name": "prev_order",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "close_order",
+          "writable": true
+        },
+        {
+          "name": "next_order",
+          "writable": true,
+          "optional": true
+        },
+        {
           "name": "order0",
           "writable": true,
           "optional": true
@@ -432,16 +524,72 @@
           "optional": true
         },
         {
-          "name": "prev_order",
+          "name": "order6",
           "writable": true,
           "optional": true
         },
         {
-          "name": "close_order",
-          "writable": true
+          "name": "order7",
+          "writable": true,
+          "optional": true
         },
         {
-          "name": "next_order",
+          "name": "order8",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order9",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order10",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order11",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order12",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order13",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order14",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order15",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order16",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order17",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order18",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order19",
           "writable": true,
           "optional": true
         }
@@ -594,6 +742,24 @@
           "writable": true
         },
         {
+          "name": "base_fee_recipient_account",
+          "writable": true
+        },
+        {
+          "name": "prev_order",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "close_order",
+          "writable": true
+        },
+        {
+          "name": "next_order",
+          "writable": true,
+          "optional": true
+        },
+        {
           "name": "order0",
           "writable": true,
           "optional": true
@@ -624,16 +790,72 @@
           "optional": true
         },
         {
-          "name": "prev_order",
+          "name": "order6",
           "writable": true,
           "optional": true
         },
         {
-          "name": "close_order",
-          "writable": true
+          "name": "order7",
+          "writable": true,
+          "optional": true
         },
         {
-          "name": "next_order",
+          "name": "order8",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order9",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order10",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order11",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order12",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order13",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order14",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order15",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order16",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order17",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order18",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order19",
           "writable": true,
           "optional": true
         }
@@ -767,22 +989,7 @@
           }
         },
         {
-          "name": "params",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  97,
-                  114,
-                  97,
-                  109,
-                  115
-                ]
-              }
-            ]
-          }
+          "name": "params"
         },
         {
           "name": "token_program",
@@ -811,6 +1018,71 @@
           "type": "string"
         }
       ]
+    },
+    {
+      "name": "create_params",
+      "discriminator": [
+        29,
+        236,
+        228,
+        147,
+        131,
+        108,
+        80,
+        125
+      ],
+      "accounts": [
+        {
+          "name": "partner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "admin_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "params",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  97,
+                  109,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "partner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     },
     {
       "name": "initialize",
@@ -950,34 +1222,8 @@
           "writable": true
         },
         {
-          "name": "order0",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order1",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order2",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order3",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order4",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order5",
-          "writable": true,
-          "optional": true
+          "name": "base_fee_recipient_account",
+          "writable": true
         },
         {
           "name": "prev_order",
@@ -1028,6 +1274,106 @@
         },
         {
           "name": "next_order",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order0",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order1",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order2",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order3",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order4",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order5",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order6",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order7",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order8",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order9",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order10",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order11",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order12",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order13",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order14",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order15",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order16",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order17",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order18",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order19",
           "writable": true,
           "optional": true
         }
@@ -1282,6 +1628,10 @@
           "writable": true
         },
         {
+          "name": "base_fee_recipient_account",
+          "writable": true
+        },
+        {
           "name": "order0",
           "writable": true,
           "optional": true
@@ -1308,6 +1658,76 @@
         },
         {
           "name": "order5",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order6",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order7",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order8",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order9",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order10",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order11",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order12",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order13",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order14",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order15",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order16",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order17",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order18",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order19",
           "writable": true,
           "optional": true
         }
@@ -1456,34 +1876,8 @@
           "writable": true
         },
         {
-          "name": "order0",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order1",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order2",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order3",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order4",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order5",
-          "writable": true,
-          "optional": true
+          "name": "base_fee_recipient_account",
+          "writable": true
         },
         {
           "name": "prev_order",
@@ -1536,6 +1930,106 @@
           "name": "next_order",
           "writable": true,
           "optional": true
+        },
+        {
+          "name": "order0",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order1",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order2",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order3",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order4",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order5",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order6",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order7",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order8",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order9",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order10",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order11",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order12",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order13",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order14",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order15",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order16",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order17",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order18",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order19",
+          "writable": true,
+          "optional": true
         }
       ],
       "args": [
@@ -1572,6 +2066,86 @@
       ]
     },
     {
+      "name": "update_admin",
+      "discriminator": [
+        161,
+        176,
+        40,
+        213,
+        60,
+        184,
+        179,
+        228
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "admin_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "default_swap_fee",
+          "type": {
+            "option": "u16"
+          }
+        },
+        {
+          "name": "default_borrow_fee",
+          "type": {
+            "option": "u16"
+          }
+        },
+        {
+          "name": "default_borrow_duration",
+          "type": {
+            "option": "u32"
+          }
+        },
+        {
+          "name": "base_fee_recipient",
+          "type": {
+            "option": "pubkey"
+          }
+        },
+        {
+          "name": "default_fee_split",
+          "type": {
+            "option": "u8"
+          }
+        },
+        {
+          "name": "new_admin",
+          "type": {
+            "option": "pubkey"
+          }
+        }
+      ]
+    },
+    {
       "name": "update_params",
       "discriminator": [
         108,
@@ -1590,6 +2164,23 @@
           "signer": true
         },
         {
+          "name": "admin_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "params",
           "writable": true,
           "pda": {
@@ -1604,6 +2195,10 @@
                   109,
                   115
                 ]
+              },
+              {
+                "kind": "arg",
+                "path": "partner_pubkey"
               }
             ]
           }
@@ -1614,6 +2209,10 @@
         }
       ],
       "args": [
+        {
+          "name": "partner_pubkey",
+          "type": "pubkey"
+        },
         {
           "name": "base_swap_fee",
           "type": {
@@ -1633,27 +2232,34 @@
           }
         },
         {
-          "name": "base_borrow_start_price_deviation",
-          "type": {
-            "option": "u128"
-          }
-        },
-        {
-          "name": "fee_recipient",
+          "name": "base_fee_recipient",
           "type": {
             "option": "pubkey"
           }
         },
         {
-          "name": "new_admin",
+          "name": "fee_split",
           "type": {
-            "option": "pubkey"
+            "option": "u8"
           }
         }
       ]
     }
   ],
   "accounts": [
+    {
+      "name": "Admin",
+      "discriminator": [
+        244,
+        158,
+        220,
+        65,
+        8,
+        73,
+        4,
+        65
+      ]
+    },
     {
       "name": "BorrowingBondingCurve",
       "discriminator": [
@@ -1745,6 +2351,19 @@
         250,
         95,
         220
+      ]
+    },
+    {
+      "name": "MilestoneDiscountEvent",
+      "discriminator": [
+        130,
+        232,
+        11,
+        37,
+        34,
+        185,
+        136,
+        128
       ]
     },
     {
@@ -2019,9 +2638,50 @@
       "code": 6048,
       "name": "InvalidOrderIndex",
       "msg": "无效的订单索引"
+    },
+    {
+      "code": 6049,
+      "name": "InvalidFeePercentage",
+      "msg": "手续费分配比例必须在0-100之间"
     }
   ],
   "types": [
+    {
+      "name": "Admin",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "default_swap_fee",
+            "type": "u16"
+          },
+          {
+            "name": "default_borrow_fee",
+            "type": "u16"
+          },
+          {
+            "name": "default_borrow_duration",
+            "type": "u32"
+          },
+          {
+            "name": "base_fee_recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "default_fee_split",
+            "type": "u8"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
     {
       "name": "BorrowingBondingCurve",
       "type": {
@@ -2060,16 +2720,20 @@
             "type": "u8"
           },
           {
+            "name": "base_fee_recipient",
+            "type": "pubkey"
+          },
+          {
             "name": "fee_recipient",
             "type": "pubkey"
           },
           {
-            "name": "borrow_duration",
-            "type": "u32"
+            "name": "fee_split",
+            "type": "u8"
           },
           {
-            "name": "borrow_start_price_deviation",
-            "type": "u128"
+            "name": "borrow_duration",
+            "type": "u32"
           },
           {
             "name": "mint",
@@ -2359,6 +3023,38 @@
       }
     },
     {
+      "name": "MilestoneDiscountEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "payer",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "curve_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "swap_fee",
+            "type": "u16"
+          },
+          {
+            "name": "borrow_fee",
+            "type": "u16"
+          },
+          {
+            "name": "fee_discount_flag",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "Params",
       "type": {
         "kind": "struct",
@@ -2376,16 +3072,16 @@
             "type": "u32"
           },
           {
-            "name": "base_borrow_start_price_deviation",
-            "type": "u128"
+            "name": "base_fee_recipient",
+            "type": "pubkey"
           },
           {
             "name": "fee_recipient",
             "type": "pubkey"
           },
           {
-            "name": "admin",
-            "type": "pubkey"
+            "name": "fee_split",
+            "type": "u8"
           },
           {
             "name": "bump",
@@ -2506,6 +3202,38 @@
           {
             "name": "curve_account",
             "type": "pubkey"
+          },
+          {
+            "name": "pool_token_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool_sol_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "base_fee_recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "params_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "swap_fee",
+            "type": "u16"
+          },
+          {
+            "name": "borrow_fee",
+            "type": "u16"
+          },
+          {
+            "name": "fee_discount_flag",
+            "type": "u8"
           },
           {
             "name": "name",

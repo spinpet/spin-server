@@ -1,4 +1,4 @@
-use super::events::{EventParser, SpinPetEvent, TOKEN_CREATED_EVENT_DISCRIMINATOR, BUY_SELL_EVENT_DISCRIMINATOR, LONG_SHORT_EVENT_DISCRIMINATOR, FORCE_LIQUIDATE_EVENT_DISCRIMINATOR, FULL_CLOSE_EVENT_DISCRIMINATOR, PARTIAL_CLOSE_EVENT_DISCRIMINATOR};
+use super::events::{EventParser, SpinPetEvent};
 use super::client::SolanaClient;
 use crate::config::SolanaConfig;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
@@ -10,12 +10,12 @@ use tracing::{info, error, debug, warn};
 use std::sync::Arc;
 use async_trait::async_trait;
 use uuid::Uuid;
-use base64::Engine;
 
 /// Event listener trait
 #[async_trait]
 pub trait EventListener {
     async fn start(&mut self) -> anyhow::Result<()>;
+    #[allow(dead_code)]
     async fn stop(&mut self) -> anyhow::Result<()>;
     fn is_running(&self) -> bool;
 }
@@ -64,34 +64,38 @@ impl EventHandler for DefaultEventHandler {
                 info!("   - Block height: {}", e.slot);
             }
             SpinPetEvent::ForceLiquidate(e) => {
-                warn!("⚠️ Force liquidation event: Order {} was liquidated", e.order_pda);
-                info!("   - Liquidator: {}", e.payer);
-                info!("   - Token: {}", e.mint_account);
+                info!("⚠️ Force liquidation event: {} liquidated order {} on token {}", 
+                      e.payer, e.order_pda, e.mint_account);
                 info!("   - Transaction signature: {}", e.signature);
                 info!("   - Block height: {}", e.slot);
             }
             SpinPetEvent::FullClose(e) => {
-                let direction = if e.is_close_long { "closed long" } else { "closed short" };
-                info!("🔒 Full close event: {} {} on token {} (order PDA: {})", 
-                      e.payer, direction, e.mint_account, e.order_pda);
-                info!("   - User SOL account: {}", e.user_sol_account);
+                let direction = if e.is_close_long { "long" } else { "short" };
+                info!("🔒 Full close event: {} closed {} order {} on token {} (profit: {})", 
+                      e.payer, direction, e.order_pda, e.mint_account, e.user_close_profit);
                 info!("   - Final token amount: {}", e.final_token_amount);
                 info!("   - Final SOL amount: {}", e.final_sol_amount);
-                info!("   - User profit: {}", e.user_close_profit);
                 info!("   - Latest price: {}", e.latest_price);
                 info!("   - Transaction signature: {}", e.signature);
                 info!("   - Block height: {}", e.slot);
             }
             SpinPetEvent::PartialClose(e) => {
-                let direction = if e.is_close_long { "partially closed long" } else { "partially closed short" };
-                info!("🔓 Partial close event: {} {} on token {} (order PDA: {})", 
-                      e.payer, direction, e.mint_account, e.order_pda);
-                info!("   - User SOL account: {}", e.user_sol_account);
+                let direction = if e.is_close_long { "long" } else { "short" };
+                info!("🔓 Partial close event: {} partially closed {} order {} on token {} (profit: {})", 
+                      e.payer, direction, e.order_pda, e.mint_account, e.user_close_profit);
                 info!("   - Final token amount: {}", e.final_token_amount);
                 info!("   - Final SOL amount: {}", e.final_sol_amount);
-                info!("   - User profit: {}", e.user_close_profit);
                 info!("   - Latest price: {}", e.latest_price);
                 info!("   - Remaining position: {}", e.position_asset_amount);
+                info!("   - Transaction signature: {}", e.signature);
+                info!("   - Block height: {}", e.slot);
+            }
+            SpinPetEvent::MilestoneDiscount(e) => {
+                info!("💲 Milestone discount event: {} updated fees for token {}", 
+                      e.payer, e.mint_account);
+                info!("   - Swap fee: {}", e.swap_fee);
+                info!("   - Borrow fee: {}", e.borrow_fee);
+                info!("   - Fee discount flag: {} (0: 原价, 1: 5折, 2: 2.5折, 3: 1.25折)", e.fee_discount_flag);
                 info!("   - Transaction signature: {}", e.signature);
                 info!("   - Block height: {}", e.slot);
             }
@@ -108,8 +112,11 @@ pub struct SolanaEventListener {
     event_handler: Arc<dyn EventHandler>,
     event_sender: Option<mpsc::UnboundedSender<SpinPetEvent>>,
     event_receiver: Option<mpsc::UnboundedReceiver<SpinPetEvent>>,
+    reconnect_sender: Option<mpsc::UnboundedSender<()>>,
+    reconnect_receiver: Option<mpsc::UnboundedReceiver<()>>,
     is_running: bool,
     reconnect_attempts: u32,
+    should_stop: Arc<tokio::sync::RwLock<bool>>,
 }
 
 impl SolanaEventListener {
@@ -121,6 +128,7 @@ impl SolanaEventListener {
     ) -> anyhow::Result<Self> {
         let event_parser = EventParser::new(&config.program_id)?;
         let (event_sender, event_receiver) = mpsc::unbounded_channel();
+        let (reconnect_sender, reconnect_receiver) = mpsc::unbounded_channel();
         
         Ok(Self {
             config,
@@ -129,8 +137,11 @@ impl SolanaEventListener {
             event_handler,
             event_sender: Some(event_sender),
             event_receiver: Some(event_receiver),
+            reconnect_sender: Some(reconnect_sender),
+            reconnect_receiver: Some(reconnect_receiver),
             is_running: false,
             reconnect_attempts: 0,
+            should_stop: Arc::new(tokio::sync::RwLock::new(false)),
         })
     }
 
@@ -154,10 +165,106 @@ impl SolanaEventListener {
         
         Ok(())
     }
+    
+    /// Start reconnection handler
+    async fn start_reconnection_handler(&mut self) -> anyhow::Result<()> {
+        if let Some(mut receiver) = self.reconnect_receiver.take() {
+            let client = Arc::clone(&self.client);
+            let config = self.config.clone();
+            let should_stop = Arc::clone(&self.should_stop);
+            let event_sender = self.event_sender.clone();
+            let event_parser = self.event_parser.clone();
+            
+            tokio::spawn(async move {
+                info!("🔄 Reconnection handler started");
+                let mut reconnect_attempts = 0u32;
+                
+                while let Some(_) = receiver.recv().await {
+                    // Check if we should stop
+                    if *should_stop.read().await {
+                        info!("Reconnection handler received stop signal");
+                        break;
+                    }
+                    
+                    info!("🔄 Reconnection signal received, starting reconnection process");
+                    
+                    // Exponential backoff reconnection loop
+                    loop {
+                        reconnect_attempts += 1;
+                        
+                        if reconnect_attempts > config.max_reconnect_attempts {
+                            error!("Max reconnection attempts ({}) exceeded. Giving up.", config.max_reconnect_attempts);
+                            break;
+                        }
+                        
+                        let delay = config.reconnect_interval * 2u64.pow(reconnect_attempts - 1);
+                        let max_delay = 300; // Max 5 minutes
+                        let delay = std::cmp::min(delay, max_delay);
+                        
+                        warn!("🔄 Reconnection attempt {} of {}. Waiting {} seconds before retry...", 
+                             reconnect_attempts, config.max_reconnect_attempts, delay);
+                             
+                        sleep(Duration::from_secs(delay)).await;
+                        
+                        // Check if we should stop before attempting reconnection
+                        if *should_stop.read().await {
+                            info!("Stop signal received, aborting reconnection");
+                            return;
+                        }
+                        
+                        // Attempt to reconnect  
+                        // Note: We don't pass reconnect_sender here to avoid infinite recursion
+                        // If this reconnection fails, we'll try again in the next iteration
+                        match Self::connect_websocket_internal(
+                            &config,
+                            &client,
+                            &event_parser,
+                            &event_sender,
+                            &None, // Don't trigger more reconnect signals from here
+                            &should_stop
+                        ).await {
+                            Ok(()) => {
+                                info!("✅ Reconnection successful after {} attempts", reconnect_attempts);
+                                reconnect_attempts = 0; // Reset counter on successful reconnection
+                                break; // Exit the reconnection loop, wait for next signal
+                            }
+                            Err(e) => {
+                                error!("❌ Reconnection attempt {} failed: {}", reconnect_attempts, e);
+                                // Continue the loop to try again
+                            }
+                        }
+                    }
+                }
+                
+                info!("🔄 Reconnection handler stopped");
+            });
+        }
+        
+        Ok(())
+    }
 
     /// Connect to Solana WebSocket
     async fn connect_websocket(&mut self) -> anyhow::Result<()> {
-        let ws_url = &self.config.ws_url;
+        Self::connect_websocket_internal(
+            &self.config,
+            &self.client,
+            &self.event_parser,
+            &self.event_sender,
+            &self.reconnect_sender,
+            &self.should_stop
+        ).await
+    }
+    
+    /// Internal WebSocket connection method that can be called statically
+    async fn connect_websocket_internal(
+        config: &SolanaConfig,
+        _client: &Arc<SolanaClient>,
+        event_parser: &EventParser,
+        event_sender: &Option<mpsc::UnboundedSender<SpinPetEvent>>,
+        reconnect_sender: &Option<mpsc::UnboundedSender<()>>,
+        should_stop: &Arc<tokio::sync::RwLock<bool>>
+    ) -> anyhow::Result<()> {
+        let ws_url = &config.ws_url;
         info!("🔌 Connecting to Solana WebSocket: {}", ws_url);
 
         let (ws_stream, _) = connect_async(ws_url).await?;
@@ -170,7 +277,7 @@ impl SolanaEventListener {
             "method": "logsSubscribe",
             "params": [
                 {
-                    "mentions": [self.config.program_id]
+                    "mentions": [config.program_id]
                 },
                 {
                     "commitment": "confirmed"
@@ -181,15 +288,23 @@ impl SolanaEventListener {
         let subscribe_msg = Message::Text(subscribe_request.to_string());
         write.send(subscribe_msg).await?;
         
-        info!("📡 Subscribed to program logs: {}", self.config.program_id);
+        info!("📡 Subscribed to program logs: {}", config.program_id);
 
         // Handle WebSocket messages
-        let event_sender = self.event_sender.clone();
-        let event_parser = self.event_parser.clone();
+        let event_sender = event_sender.clone();
+        let event_parser = event_parser.clone();
+        let reconnect_sender = reconnect_sender.clone();
+        let should_stop = Arc::clone(should_stop);
         
         tokio::spawn(async move {
             info!("🎧 Started listening to WebSocket messages");
             while let Some(msg) = read.next().await {
+                // Check if we should stop
+                if *should_stop.read().await {
+                    info!("WebSocket listener received stop signal");
+                    break;
+                }
+                
                 match msg {
                     Ok(Message::Text(text)) => {
                         debug!("📨 Received text message: {}", text);
@@ -202,7 +317,15 @@ impl SolanaEventListener {
                         }
                     }
                     Ok(Message::Close(_)) => {
-                        warn!("WebSocket connection closed");
+                        warn!("WebSocket connection closed, triggering reconnect");
+                        // Connection closed - trigger reconnection unless we're stopping
+                        if !*should_stop.read().await {
+                            if let Some(sender) = &reconnect_sender {
+                                if let Err(e) = sender.send(()) {
+                                    error!("Failed to send reconnect signal: {}", e);
+                                }
+                            }
+                        }
                         break;
                     }
                     Ok(Message::Ping(data)) => {
@@ -212,7 +335,15 @@ impl SolanaEventListener {
                         debug!("Received Pong: {:?}", data);
                     }
                     Err(e) => {
-                        error!("WebSocket error: {}", e);
+                        error!("WebSocket error: {}, triggering reconnect", e);
+                        // WebSocket error - trigger reconnection unless we're stopping
+                        if !*should_stop.read().await {
+                            if let Some(sender) = &reconnect_sender {
+                                if let Err(send_err) = sender.send(()) {
+                                    error!("Failed to send reconnect signal: {}", send_err);
+                                }
+                            }
+                        }
                         break;
                     }
                     _ => {
@@ -223,7 +354,6 @@ impl SolanaEventListener {
             warn!("🎧 WebSocket message listener ended");
         });
 
-        self.reconnect_attempts = 0;
         Ok(())
     }
 
@@ -343,25 +473,6 @@ impl SolanaEventListener {
         Ok(())
     }
 
-    /// Reconnect to WebSocket with exponential backoff
-    async fn reconnect(&mut self) -> anyhow::Result<()> {
-        self.reconnect_attempts += 1;
-        
-        if self.reconnect_attempts > self.config.max_reconnect_attempts {
-            error!("Max reconnection attempts ({}) exceeded. Giving up.", self.config.max_reconnect_attempts);
-            return Err(anyhow::anyhow!("Max reconnection attempts exceeded"));
-        }
-        
-        let delay = self.config.reconnect_interval * 2u64.pow(self.reconnect_attempts - 1);
-        let max_delay = 300; // Max 5 minutes
-        let delay = std::cmp::min(delay, max_delay);
-        
-        warn!("Reconnection attempt {} of {}. Waiting {} seconds before retry...", 
-             self.reconnect_attempts, self.config.max_reconnect_attempts, delay);
-             
-        sleep(Duration::from_secs(delay)).await;
-        self.connect_websocket().await
-    }
 }
 
 #[async_trait]
@@ -374,6 +485,9 @@ impl EventListener for SolanaEventListener {
         
         info!("🚀 Starting Solana event listener");
         
+        // Reset stop signal
+        *self.should_stop.write().await = false;
+        
         // First check if RPC connection works
         if !self.client.check_connection().await? {
             return Err(anyhow::anyhow!("Cannot connect to Solana RPC"));
@@ -382,9 +496,12 @@ impl EventListener for SolanaEventListener {
         // Start event processor
         self.start_event_processor().await?;
         
+        // Start reconnection handler
+        self.start_reconnection_handler().await?;
+        
         // Connect to WebSocket
         if let Err(e) = self.connect_websocket().await {
-            error!("Failed to connect to WebSocket: {}", e);
+            error!("Failed to initial WebSocket connection: {}", e);
             return Err(e);
         }
         
@@ -402,8 +519,12 @@ impl EventListener for SolanaEventListener {
         
         info!("🛑 Stopping Solana event listener");
         
-        // Close the event sender to signal processor to stop
+        // Set stop signal to prevent reconnections
+        *self.should_stop.write().await = true;
+        
+        // Close the channels to signal processors to stop
         self.event_sender = None;
+        self.reconnect_sender = None;
         
         self.is_running = false;
         info!("✅ Solana event listener stopped successfully");
@@ -413,6 +534,26 @@ impl EventListener for SolanaEventListener {
     
     fn is_running(&self) -> bool {
         self.is_running
+    }
+}
+
+// Additional methods for SolanaEventListener (not part of EventListener trait)
+impl SolanaEventListener {
+    /// Get current reconnection attempts count
+    pub fn get_reconnect_attempts(&self) -> u32 {
+        self.reconnect_attempts
+    }
+    
+    /// Get connection health status
+    pub async fn get_connection_health(&self) -> serde_json::Value {
+        serde_json::json!({
+            "is_running": self.is_running,
+            "reconnect_attempts": self.reconnect_attempts,
+            "max_reconnect_attempts": self.config.max_reconnect_attempts,
+            "should_stop": *self.should_stop.read().await,
+            "ws_url": self.config.ws_url,
+            "program_id": self.config.program_id
+        })
     }
 }
 
@@ -450,6 +591,7 @@ impl EventListenerManager {
         }
     }
     
+    #[allow(dead_code)]
     pub async fn stop(&mut self) -> anyhow::Result<()> {
         if let Some(listener) = &mut self.listener {
             listener.stop().await

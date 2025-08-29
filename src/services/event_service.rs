@@ -30,6 +30,7 @@ pub struct EventStats {
     pub force_liquidate: u64,
     pub full_close: u64,
     pub partial_close: u64,
+    pub milestone_discount: u64,
     pub total: u64,
 }
 
@@ -50,6 +51,7 @@ impl StatsEventHandler {
                 force_liquidate: 0,
                 full_close: 0,
                 partial_close: 0,
+                milestone_discount: 0,
                 total: 0,
             })),
             last_event_time: Arc::new(RwLock::new(None)),
@@ -85,6 +87,7 @@ impl EventHandler for StatsEventHandler {
                 SpinPetEvent::ForceLiquidate(_) => stats.force_liquidate += 1,
                 SpinPetEvent::FullClose(_) => stats.full_close += 1,
                 SpinPetEvent::PartialClose(_) => stats.partial_close += 1,
+                SpinPetEvent::MilestoneDiscount(_) => stats.milestone_discount += 1,
             }
             stats.total += 1;
         }
@@ -157,7 +160,7 @@ impl EventService {
         Ok(())
     }
 
-    /// Stop event service
+    #[allow(dead_code)]
     pub async fn stop(&mut self) -> anyhow::Result<()> {
         info!("🛑 Stopping event service");
         self.listener_manager.stop().await?;
@@ -190,12 +193,12 @@ impl EventService {
         self.event_handler.get_stats().await
     }
 
-    /// Check if service is running
+    #[allow(dead_code)]
     pub fn is_running(&self) -> bool {
         self.listener_manager.is_running()
     }
 
-    /// Get program ID
+    #[allow(dead_code)]
     pub fn get_program_id(&self) -> &str {
         &self.config.program_id
     }
@@ -219,6 +222,7 @@ mod tests {
             force_liquidate: 0,
             full_close: 0,
             partial_close: 0,
+            milestone_discount: 0,
             total: 0,
         };
         

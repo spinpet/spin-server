@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use base64::engine::Engine;
 use borsh::BorshDeserialize;
-use tracing::{debug, error, warn};
+use tracing::{debug, warn};
 use serde_with::{serde_as, DisplayFromStr};
 
 
@@ -15,6 +15,7 @@ pub const LONG_SHORT_EVENT_DISCRIMINATOR: [u8; 8] = [27, 69, 20, 116, 58, 250, 9
 pub const FORCE_LIQUIDATE_EVENT_DISCRIMINATOR: [u8; 8] = [234, 196, 183, 105, 40, 26, 206, 48];
 pub const FULL_CLOSE_EVENT_DISCRIMINATOR: [u8; 8] = [22, 244, 113, 245, 154, 168, 109, 139];
 pub const PARTIAL_CLOSE_EVENT_DISCRIMINATOR: [u8; 8] = [133, 94, 3, 222, 24, 68, 69, 155];
+pub const MILESTONE_DISCOUNT_EVENT_DISCRIMINATOR: [u8; 8] = [130,232,11,37,34,185,136,128];
 
 
 
@@ -28,6 +29,7 @@ pub enum SpinPetEvent {
     ForceLiquidate(ForceLiquidateEvent),
     FullClose(FullCloseEvent),
     PartialClose(PartialCloseEvent),
+    MilestoneDiscount(MilestoneDiscountEvent),
 }
 
 /// Token creation event - exactly matches original Anchor structure
@@ -36,9 +38,18 @@ pub struct TokenCreatedEvent {
     pub payer: String,
     pub mint_account: String,
     pub curve_account: String,
+    pub pool_token_account: String,
+    pub pool_sol_account: String,
+    pub fee_recipient: String,
+    pub base_fee_recipient: String,        // 基础手续费接收账户
+    pub params_account: String,            // 合作伙伴参数账户PDA地址
     pub name: String,
     pub symbol: String,
     pub uri: String,
+    pub swap_fee: u16,                     // 现货交易手续费
+    pub borrow_fee: u16,                   // 保证金交易手续费
+    pub fee_discount_flag: u8,             // 手续费折扣标志 0: 原价 1: 5折 2: 2.5折  3: 1.25折
+
     #[schema(value_type = String)]
     pub timestamp: DateTime<Utc>,
     pub signature: String,
@@ -160,9 +171,25 @@ pub struct PartialCloseEvent {
     pub slot: u64,
 }
 
+/// Milestone Discount event - exactly matches original Anchor structure
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct MilestoneDiscountEvent {
+    pub payer: String,
+    pub mint_account: String,
+    pub curve_account: String,
+    pub swap_fee: u16,                     // 现货交易手续费
+    pub borrow_fee: u16,                   // 保证金交易手续费
+    pub fee_discount_flag: u8,             // 手续费折扣标志 0: 原价 1: 5折 2: 2.5折  3: 1.25折
+    #[schema(value_type = String)]
+    pub timestamp: DateTime<Utc>,
+    pub signature: String,
+    pub slot: u64,
+}
+
 /// Event parser
 #[derive(Clone)]
 pub struct EventParser {
+    #[allow(dead_code)]
     pub program_id: Pubkey,
 }
 
@@ -230,13 +257,14 @@ impl EventParser {
                 debug!("🔑 Event discriminator: {:?}", discriminator);
                 
                 // 打印所有定义的判别器以进行比较
-                debug!("💡 Defined discriminators: TOKEN_CREATED={:?}, BUY_SELL={:?}, LONG_SHORT={:?}, FORCE_LIQUIDATE={:?}, FULL_CLOSE={:?}, PARTIAL_CLOSE={:?}", 
+                debug!("💡 Defined discriminators: TOKEN_CREATED={:?}, BUY_SELL={:?}, LONG_SHORT={:?}, FORCE_LIQUIDATE={:?}, FULL_CLOSE={:?}, PARTIAL_CLOSE={:?}, MILESTONE_DISCOUNT={:?}", 
                        TOKEN_CREATED_EVENT_DISCRIMINATOR,
                        BUY_SELL_EVENT_DISCRIMINATOR, 
                        LONG_SHORT_EVENT_DISCRIMINATOR,
                        FORCE_LIQUIDATE_EVENT_DISCRIMINATOR,
                        FULL_CLOSE_EVENT_DISCRIMINATOR,
-                       PARTIAL_CLOSE_EVENT_DISCRIMINATOR);
+                       PARTIAL_CLOSE_EVENT_DISCRIMINATOR,
+                       MILESTONE_DISCOUNT_EVENT_DISCRIMINATOR);
                 
                 // 比较判别器并打印结果
                 if discriminator == TOKEN_CREATED_EVENT_DISCRIMINATOR {
@@ -251,6 +279,8 @@ impl EventParser {
                     debug!("✓ Matched FULL_CLOSE_EVENT_DISCRIMINATOR");
                 } else if discriminator == PARTIAL_CLOSE_EVENT_DISCRIMINATOR {
                     debug!("✓ Matched PARTIAL_CLOSE_EVENT_DISCRIMINATOR");
+                } else if discriminator == MILESTONE_DISCOUNT_EVENT_DISCRIMINATOR {
+                    debug!("✓ Matched MILESTONE_DISCOUNT_EVENT_DISCRIMINATOR");
                 } else {
                     debug!("❌ No matching discriminator found");
                 }
@@ -327,6 +357,11 @@ impl EventParser {
                 let event = self.parse_partial_close_event(event_data, signature, slot, timestamp)?;
                 Ok(Some(SpinPetEvent::PartialClose(event)))
             }
+            d if d == MILESTONE_DISCOUNT_EVENT_DISCRIMINATOR => {
+                debug!("💲 Matched MilestoneDiscountEvent, discriminator: {:?}", d);
+                let event = self.parse_milestone_discount_event(event_data, signature, slot, timestamp)?;
+                Ok(Some(SpinPetEvent::MilestoneDiscount(event)))
+            }
             _ => {
                 debug!("❓ Unknown event discriminator: {:?}", discriminator);
                 Ok(None)
@@ -344,8 +379,8 @@ impl EventParser {
     ) -> anyhow::Result<TokenCreatedEvent> {
         debug!("🪙 Starting to parse TokenCreatedEvent, data length: {}", data.len());
         
-        if data.len() < 96 {
-            return Err(anyhow::anyhow!("TokenCreatedEvent data length insufficient, need at least 96 bytes, actual: {}", data.len()));
+        if data.len() < 261 {
+            return Err(anyhow::anyhow!("TokenCreatedEvent data length insufficient, need at least 261 bytes, actual: {}", data.len()));
         }
 
         debug!("🔍 Parsing payer (0..32)");
@@ -363,8 +398,47 @@ impl EventParser {
             .map_err(|e| anyhow::anyhow!("Failed to parse curve_account: {}", e))?;
         debug!("✅ curve_account: {}", curve_account);
         
+        debug!("🔍 Parsing pool_token_account (96..128)");
+        let pool_token_account = Pubkey::try_from_slice(&data[96..128])
+            .map_err(|e| anyhow::anyhow!("Failed to parse pool_token_account: {}", e))?;
+        debug!("✅ pool_token_account: {}", pool_token_account);
+        
+        debug!("🔍 Parsing pool_sol_account (128..160)");
+        let pool_sol_account = Pubkey::try_from_slice(&data[128..160])
+            .map_err(|e| anyhow::anyhow!("Failed to parse pool_sol_account: {}", e))?;
+        debug!("✅ pool_sol_account: {}", pool_sol_account);
+        
+        debug!("🔍 Parsing fee_recipient (160..192)");
+        let fee_recipient = Pubkey::try_from_slice(&data[160..192])
+            .map_err(|e| anyhow::anyhow!("Failed to parse fee_recipient: {}", e))?;
+        debug!("✅ fee_recipient: {}", fee_recipient);
+
+        debug!("🔍 Parsing base_fee_recipient (192..224)");
+        let base_fee_recipient = Pubkey::try_from_slice(&data[192..224])
+            .map_err(|e| anyhow::anyhow!("Failed to parse base_fee_recipient: {}", e))?;
+        debug!("✅ base_fee_recipient: {}", base_fee_recipient);
+
+        debug!("🔍 Parsing params_account (224..256)");
+        let params_account = Pubkey::try_from_slice(&data[224..256])
+            .map_err(|e| anyhow::anyhow!("Failed to parse params_account: {}", e))?;
+        debug!("✅ params_account: {}", params_account);
+
+        debug!("🔍 Parsing swap_fee (256..258)");
+        let swap_fee = u16::from_le_bytes(data[256..258].try_into()
+            .map_err(|e| anyhow::anyhow!("Failed to parse swap_fee: {}", e))?);
+        debug!("✅ swap_fee: {}", swap_fee);
+
+        debug!("🔍 Parsing borrow_fee (258..260)");
+        let borrow_fee = u16::from_le_bytes(data[258..260].try_into()
+            .map_err(|e| anyhow::anyhow!("Failed to parse borrow_fee: {}", e))?);
+        debug!("✅ borrow_fee: {}", borrow_fee);
+
+        debug!("🔍 Parsing fee_discount_flag (260)");
+        let fee_discount_flag = data[260];
+        debug!("✅ fee_discount_flag: {}", fee_discount_flag);
+        
         // Parse string fields (Borsh format: 4-byte length + string data)
-        let mut offset = 96;
+        let mut offset = 261;
         debug!("🔍 Starting to parse string fields, starting offset: {}", offset);
         
         // Parse name
@@ -422,9 +496,17 @@ impl EventParser {
             payer: payer.to_string(),
             mint_account: mint_account.to_string(),
             curve_account: curve_account.to_string(),
+            pool_token_account: pool_token_account.to_string(),
+            pool_sol_account: pool_sol_account.to_string(),
+            fee_recipient: fee_recipient.to_string(),
+            base_fee_recipient: base_fee_recipient.to_string(),
+            params_account: params_account.to_string(),
             name,
             symbol,
             uri,
+            swap_fee,
+            borrow_fee,
+            fee_discount_flag,
             timestamp,
             signature: signature.to_string(),
             slot,
@@ -877,6 +959,63 @@ impl EventParser {
             slot,
         })
     }
+
+    /// Parse MilestoneDiscountEvent
+    fn parse_milestone_discount_event(
+        &self,
+        data: &[u8],
+        signature: &str,
+        slot: u64,
+        timestamp: DateTime<Utc>,
+    ) -> anyhow::Result<MilestoneDiscountEvent> {
+        debug!("💲 Starting to parse MilestoneDiscountEvent, data length: {}", data.len());
+        
+        if data.len() < 99 {
+            return Err(anyhow::anyhow!("MilestoneDiscountEvent data length insufficient, need at least 99 bytes, actual: {}", data.len()));
+        }
+
+        debug!("🔍 Parsing payer (0..32)");
+        let payer = Pubkey::try_from_slice(&data[0..32])
+            .map_err(|e| anyhow::anyhow!("Failed to parse payer: {}", e))?;
+        debug!("✅ payer: {}", payer);
+
+        debug!("🔍 Parsing mint_account (32..64)");
+        let mint_account = Pubkey::try_from_slice(&data[32..64])
+            .map_err(|e| anyhow::anyhow!("Failed to parse mint_account: {}", e))?;
+        debug!("✅ mint_account: {}", mint_account);
+
+        debug!("🔍 Parsing curve_account (64..96)");
+        let curve_account = Pubkey::try_from_slice(&data[64..96])
+            .map_err(|e| anyhow::anyhow!("Failed to parse curve_account: {}", e))?;
+        debug!("✅ curve_account: {}", curve_account);
+
+        debug!("🔍 Parsing swap_fee (96..98)");
+        let swap_fee = u16::from_le_bytes(data[96..98].try_into()
+            .map_err(|e| anyhow::anyhow!("Failed to parse swap_fee: {}", e))?);
+        debug!("✅ swap_fee: {}", swap_fee);
+
+        debug!("🔍 Parsing borrow_fee (98..100)");
+        let borrow_fee = u16::from_le_bytes(data[98..100].try_into()
+            .map_err(|e| anyhow::anyhow!("Failed to parse borrow_fee: {}", e))?);
+        debug!("✅ borrow_fee: {}", borrow_fee);
+
+        debug!("🔍 Parsing fee_discount_flag (100)");
+        let fee_discount_flag = data[100];
+        debug!("✅ fee_discount_flag: {}", fee_discount_flag);
+
+        debug!("🎉 MilestoneDiscountEvent parsed");
+        Ok(MilestoneDiscountEvent {
+            payer: payer.to_string(),
+            mint_account: mint_account.to_string(),
+            curve_account: curve_account.to_string(),
+            swap_fee,
+            borrow_fee,
+            fee_discount_flag,
+            timestamp,
+            signature: signature.to_string(),
+            slot,
+        })
+    }
 }
 
 #[cfg(test)]
@@ -892,6 +1031,7 @@ mod tests {
         assert_eq!(FORCE_LIQUIDATE_EVENT_DISCRIMINATOR.len(), 8);
         assert_eq!(FULL_CLOSE_EVENT_DISCRIMINATOR.len(), 8);
         assert_eq!(PARTIAL_CLOSE_EVENT_DISCRIMINATOR.len(), 8);
+        assert_eq!(MILESTONE_DISCOUNT_EVENT_DISCRIMINATOR.len(), 8);
         
         // Test that each discriminator is unique
         let discriminators = vec![
@@ -901,6 +1041,7 @@ mod tests {
             FORCE_LIQUIDATE_EVENT_DISCRIMINATOR,
             FULL_CLOSE_EVENT_DISCRIMINATOR,
             PARTIAL_CLOSE_EVENT_DISCRIMINATOR,
+            MILESTONE_DISCOUNT_EVENT_DISCRIMINATOR,
         ];
         
         for (i, disc1) in discriminators.iter().enumerate() {

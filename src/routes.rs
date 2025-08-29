@@ -24,6 +24,7 @@ use crate::config::Config;
         handlers::query_mints,
         handlers::query_orders,
         handlers::query_user_transactions,
+        handlers::query_user_orders,
         handlers::query_mint_details,
     ),
     components(
@@ -46,6 +47,7 @@ use crate::config::Config;
             crate::services::OrderData,
             crate::services::UserQueryResponse,
             crate::services::UserTransactionData,
+            crate::services::UserOrderQueryResponse,
             crate::services::MintDetailsQueryResponse,
             crate::services::MintDetailData,
             crate::solana::SpinPetEvent,
@@ -96,6 +98,9 @@ pub fn create_router(config: &Config, app_state: Arc<AppState>) -> Router {
         
         // User transaction query routes
         .route("/api/user_event", get(handlers::query_user_transactions))
+        
+        // User order query routes
+        .route("/api/user_orders", get(handlers::query_user_orders))
         
         // OpenAPI specification
         .route("/api-docs/openapi.json", get(serve_openapi))

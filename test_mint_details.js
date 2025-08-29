@@ -40,6 +40,22 @@ async function testMintDetails() {
       console.log(`🔣 Symbol: ${detail.symbol || 'Unknown'}`);
       console.log(`🌐 URI: ${detail.uri || 'None'}`);
       
+      if (detail.swap_fee !== undefined) {
+        console.log(`💱 Swap Fee: ${detail.swap_fee}`);
+      }
+      
+      if (detail.borrow_fee !== undefined) {
+        console.log(`💸 Borrow Fee: ${detail.borrow_fee}`);
+      }
+      
+      if (detail.fee_discount_flag !== undefined) {
+        let discount = 'Original';
+        if (detail.fee_discount_flag === 1) discount = '50%';
+        if (detail.fee_discount_flag === 2) discount = '25%';
+        if (detail.fee_discount_flag === 3) discount = '12.5%';
+        console.log(`🏷️ Fee Discount: ${discount} (${detail.fee_discount_flag})`);
+      }
+      
       if (detail.latest_price) {
         console.log(`💰 Latest Price: ${detail.latest_price}`);
       }
