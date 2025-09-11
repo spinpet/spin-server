@@ -144,6 +144,7 @@ impl SolanaEventListener {
             is_running: false,
             reconnect_attempts: 0,
             should_stop: Arc::new(tokio::sync::RwLock::new(false)),
+            processed_signatures: Arc::new(tokio::sync::RwLock::new(HashSet::new())),
         })
     }
 
