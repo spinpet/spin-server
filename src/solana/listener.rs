@@ -118,6 +118,7 @@ pub struct SolanaEventListener {
     is_running: bool,
     reconnect_attempts: u32,
     should_stop: Arc<tokio::sync::RwLock<bool>>,
+    processed_signatures: Arc<tokio::sync::RwLock<HashSet<String>>>,
 }
 
 impl SolanaEventListener {
