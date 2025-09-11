@@ -301,9 +301,10 @@ impl SolanaClient {
         let signature_str = signature.to_string();
         self.execute_with_retry(move |client| {
             let sig = Signature::from_str(&signature_str)?;
+            // Use confirmed instead of finalized for faster response
             let config = RpcTransactionConfig {
                 encoding: Some(UiTransactionEncoding::Json),
-                commitment: Some(CommitmentConfig::finalized()),
+                commitment: Some(CommitmentConfig::confirmed()),
                 max_supported_transaction_version: Some(0),
             };
             
@@ -315,8 +316,9 @@ impl SolanaClient {
                     Ok(json)
                 }
                 Err(e) => {
-                    warn!("Failed to get transaction {}: {}", signature_str, e);
-                    Err(anyhow::anyhow!("Failed to get transaction: {}", e))
+                    // Transaction might not be available yet, return empty result instead of error
+                    debug!("Transaction {} not available yet: {}", signature_str, e);
+                    Ok(serde_json::json!({}))
                 }
             }
         }).await
