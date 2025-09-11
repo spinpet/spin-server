@@ -261,11 +261,12 @@ impl SolanaEventListener {
     /// Internal WebSocket connection method that can be called statically
     async fn connect_websocket_internal(
         config: &SolanaConfig,
-        _client: &Arc<SolanaClient>,
+        client: &Arc<SolanaClient>,
         event_parser: &EventParser,
         event_sender: &Option<mpsc::UnboundedSender<SpinPetEvent>>,
         reconnect_sender: &Option<mpsc::UnboundedSender<()>>,
-        should_stop: &Arc<tokio::sync::RwLock<bool>>
+        should_stop: &Arc<tokio::sync::RwLock<bool>>,
+        processed_signatures: &Arc<tokio::sync::RwLock<HashSet<String>>>,
     ) -> anyhow::Result<()> {
         let ws_url = &config.ws_url;
         info!("🔌 Connecting to Solana WebSocket: {}", ws_url);
