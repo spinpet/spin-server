@@ -254,7 +254,8 @@ impl SolanaEventListener {
             &self.event_parser,
             &self.event_sender,
             &self.reconnect_sender,
-            &self.should_stop
+            &self.should_stop,
+            &self.processed_signatures,
         ).await
     }
     
