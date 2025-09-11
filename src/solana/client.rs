@@ -12,6 +12,7 @@ use std::collections::hash_map::DefaultHasher;
 use tokio::sync::RwLock;
 use tokio::time::{sleep, Duration, Instant};
 use tracing::{info, error, debug, warn};
+use serde_json::Value;
 
 /// Connection state for RPC client
 #[derive(Debug, Clone, PartialEq)]
