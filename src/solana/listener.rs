@@ -381,7 +381,6 @@ impl SolanaEventListener {
         
         // 1. 先解析整个JSON消息
         let json_msg: Value = serde_json::from_str(message)?;
-        debug!("🔍 Parsed JSON: {}", json_msg);
         
         // 2. 检查是否是订阅确认消息
         if let Some(result) = json_msg.get("result") {
@@ -392,40 +391,32 @@ impl SolanaEventListener {
         }
         
         // 3. 检查是否是日志通知并提取日志
-        debug!("🔎 Looking for logs in message structure...");
         if let Some(params) = json_msg.get("params") {
-            debug!("✅ Found params: {}", params);
-            
             if let Some(result) = params.get("result") {
-                debug!("✅ Found result in params: {}", result);
-                
-                // 正确解析slot字段路径：在result.context.slot
-                let slot = match result.get("context").and_then(|ctx| ctx.get("slot")).and_then(|s| s.as_u64()) {
-                    Some(s) => {
-                        debug!("✅ Found slot: {}", s);
-                        s
-                    },
-                    None => {
-                        warn!("❌ No slot found in context - falling back to default slot value");
-                        // 使用一个默认值而不是直接返回，确保仍然能处理消息
-                        0
-                    }
-                };
+                let slot = result.get("context")
+                    .and_then(|ctx| ctx.get("slot"))
+                    .and_then(|s| s.as_u64())
+                    .unwrap_or(0);
                 
                 if let Some(value) = result.get("value") {
-                    debug!("✅ Found value in result: {}", value);
-                    
                     // 提取签名
                     let signature = match value.get("signature").and_then(|s| s.as_str()) {
-                        Some(sig) => {
-                            debug!("✅ Found signature: {}", sig);
-                            sig
-                        },
+                        Some(sig) => sig,
                         None => {
-                            warn!("❌ No signature found in message");
+                            warn!("No signature found in message");
                             return Ok(());
                         }
                     };
+                    
+                    // 检查是否已处理过这个签名
+                    {
+                        let mut processed = processed_signatures.write().await;
+                        if processed.contains(signature) {
+                            debug!("Signature {} already processed, skipping", signature);
+                            return Ok(());
+                        }
+                        processed.insert(signature.to_string());
+                    }
                     
                     // 提取日志数组
                     if let Some(logs_array) = value.get("logs").and_then(|l| l.as_array()) {
@@ -435,56 +426,112 @@ impl SolanaEventListener {
                             .map(|s| s.to_string())
                             .collect();
                         
-                        debug!("📜 Found {} logs entries", logs.len());
+                        debug!("📜 Processing {} log entries for signature {}", logs.len(), signature);
                         
-                        // 打印每个日志条目用于调试
-                        for (i, log) in logs.iter().enumerate() {
-                            debug!("📝 Log[{}]: {}", i, log);
-                            // 特别检查包含 "Program data:" 的日志
-                            if log.contains("Program data:") {
-                                debug!("🔍 Found Program data log: {}", log);
+                        // 首先尝试从日志中解析事件
+                        let mut all_events = Vec::new();
+                        
+                        // 使用增强的解析方法，支持 CPI 调用栈跟踪
+                        match event_parser.parse_events_with_call_stack(&logs, signature, slot) {
+                            Ok(events) => {
+                                debug!("Found {} events from logs", events.len());
+                                all_events.extend(events);
+                            }
+                            Err(e) => {
+                                debug!("Failed to parse events from logs: {}", e);
                             }
                         }
                         
-                        // 解析日志中的事件
-                        debug!("🔄 Parsing events from {} logs", logs.len());
-                        match event_parser.parse_event_from_logs(&logs, signature, slot) {
-                            Ok(events) => {
-                                if events.is_empty() {
-                                    debug!("⚠️ No events found in logs");
-                                } else {
-                                    debug!("✅ Found {} events in logs", events.len());
-                                    
-                                    if let Some(sender) = event_sender {
-                                        for event in events {
-                                            debug!("📤 Sending event to processor: {:?}", event);
-                                            if let Err(e) = sender.send(event) {
-                                                error!("Failed to send event to processor: {}", e);
+                        // 如果检测到可能有 CPI 调用，获取完整交易详情
+                        let has_cpi = logs.iter().any(|log| {
+                            log.contains("invoke [2]") || 
+                            log.contains("invoke [3]") ||
+                            log.contains("invoke [4]")
+                        });
+                        
+                        if has_cpi {
+                            info!("🔍 Detected CPI calls in transaction {}, fetching full details", signature);
+                            
+                            // 获取完整交易详情
+                            match client.get_transaction_with_logs(signature).await {
+                                Ok(tx_details) => {
+                                    if let Some(meta) = tx_details.get("meta").and_then(|m| m.as_object()) {
+                                        if let Some(full_logs) = meta.get("logMessages").and_then(|l| l.as_array()) {
+                                            let full_log_strings: Vec<String> = full_logs
+                                                .iter()
+                                                .filter_map(|l| l.as_str())
+                                                .map(|s| s.to_string())
+                                                .collect();
+                                            
+                                            debug!("Got {} logs from transaction details", full_log_strings.len());
+                                            
+                                            // 重新解析完整日志
+                                            match event_parser.parse_events_with_call_stack(&full_log_strings, signature, slot) {
+                                                Ok(events) => {
+                                                    debug!("Found {} additional events from full transaction", events.len());
+                                                    for event in events {
+                                                        // 避免重复添加
+                                                        if !Self::event_exists_in_list(&all_events, &event) {
+                                                            all_events.push(event);
+                                                        }
+                                                    }
+                                                }
+                                                Err(e) => {
+                                                    error!("Failed to parse events from full transaction: {}", e);
+                                                }
                                             }
                                         }
-                                    } else {
-                                        warn!("No event sender available");
+                                    }
+                                }
+                                Err(e) => {
+                                    warn!("Failed to get transaction details for {}: {}", signature, e);
+                                }
+                            }
+                        }
+                        
+                        // 发送所有找到的事件
+                        if !all_events.is_empty() {
+                            info!("✅ Found {} total events in transaction {}", all_events.len(), signature);
+                            
+                            if let Some(sender) = event_sender {
+                                for event in all_events {
+                                    debug!("📤 Sending event to processor: {:?}", event);
+                                    if let Err(e) = sender.send(event) {
+                                        error!("Failed to send event to processor: {}", e);
                                     }
                                 }
                             }
-                            Err(e) => {
-                                error!("❌ Failed to parse events from logs: {}", e);
-                            }
+                        } else {
+                            debug!("No events found in transaction {}", signature);
                         }
-                    } else {
-                        warn!("❌ No logs array found in message");
                     }
-                } else {
-                    warn!("❌ No value found in result");
                 }
-            } else {
-                warn!("❌ No result found in params");
             }
-        } else {
-            warn!("❌ No params found in message");
         }
         
         Ok(())
+    }
+    
+    /// Check if an event already exists in the list (based on signature and event type)
+    fn event_exists_in_list(events: &[SpinPetEvent], new_event: &SpinPetEvent) -> bool {
+        events.iter().any(|e| {
+            Self::events_are_equal(e, new_event)
+        })
+    }
+    
+    /// Compare two events for equality (simplified comparison)
+    fn events_are_equal(e1: &SpinPetEvent, e2: &SpinPetEvent) -> bool {
+        use SpinPetEvent::*;
+        match (e1, e2) {
+            (TokenCreated(a), TokenCreated(b)) => a.signature == b.signature,
+            (BuySell(a), BuySell(b)) => a.signature == b.signature,
+            (LongShort(a), LongShort(b)) => a.signature == b.signature && a.order_pda == b.order_pda,
+            (PartialClose(a), PartialClose(b)) => a.signature == b.signature && a.order_pda == b.order_pda,
+            (FullClose(a), FullClose(b)) => a.signature == b.signature && a.order_pda == b.order_pda,
+            (ForceLiquidate(a), ForceLiquidate(b)) => a.signature == b.signature && a.order_pda == b.order_pda,
+            (MilestoneDiscount(a), MilestoneDiscount(b)) => a.signature == b.signature,
+            _ => false,
+        }
     }
 
 }
