@@ -198,8 +198,100 @@ impl EventParser {
         let program_id = program_id.parse::<Pubkey>()?;
         Ok(Self { program_id })
     }
+    
+    /// Parse events with call stack tracking to capture CPI events
+    pub fn parse_events_with_call_stack(
+        &self,
+        logs: &[String],
+        signature: &str,
+        slot: u64,
+    ) -> anyhow::Result<Vec<SpinPetEvent>> {
+        let mut events = Vec::new();
+        let mut program_stack = Vec::new();
+        let mut in_target_program = false;
+        
+        debug!("🔍 Starting call stack parsing for {} log lines", logs.len());
+        
+        for (i, log) in logs.iter().enumerate() {
+            debug!("📝 Processing log[{}]: {}", i, log);
+            
+            // Track program invocations
+            if log.contains(" invoke [") {
+                // Extract program ID from log like "Program <pubkey> invoke [depth]"
+                if let Some(program_id) = Self::extract_program_id_from_log(log) {
+                    program_stack.push(program_id.clone());
+                    debug!("📥 Program {} entered stack (depth: {})", program_id, program_stack.len());
+                    
+                    // Check if our target program is now in the stack
+                    if program_id == self.program_id.to_string() {
+                        in_target_program = true;
+                        debug!("✅ Target program {} is now active", self.program_id);
+                    }
+                }
+            } else if log.contains(" success") || log.contains(" failed") {
+                // Program exit - pop from stack
+                if let Some(exited_program) = program_stack.pop() {
+                    debug!("📤 Program {} exited stack (remaining depth: {})", exited_program, program_stack.len());
+                    
+                    // Check if we're still in target program context
+                    in_target_program = program_stack.iter().any(|p| p == &self.program_id.to_string());
+                    if !in_target_program {
+                        debug!("❌ Target program {} is no longer active", self.program_id);
+                    }
+                }
+            }
+            
+            // Parse "Program data:" logs when in target program context
+            if in_target_program && log.starts_with("Program data:") {
+                debug!("✨ Found Program data in target program context at log[{}]", i);
+                
+                if let Some(data_part) = log.strip_prefix("Program data: ") {
+                    let data_part = data_part.trim();
+                    
+                    // Base64 decode
+                    match base64::engine::general_purpose::STANDARD.decode(data_part) {
+                        Ok(data) => {
+                            debug!("📊 Successfully decoded Base64 data, length: {}", data.len());
+                            
+                            // Parse event from data
+                            match self.parse_event_data(&data, signature, slot) {
+                                Ok(Some(event)) => {
+                                    debug!("✅ Successfully parsed event from CPI context: {:?}", event);
+                                    events.push(event);
+                                }
+                                Ok(None) => {
+                                    debug!("⚠️ Data didn't match any event discriminator");
+                                }
+                                Err(e) => {
+                                    warn!("❌ Failed to parse event data: {}", e);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            warn!("⚠️ Base64 decoding failed: {}", e);
+                        }
+                    }
+                }
+            }
+        }
+        
+        debug!("📋 Call stack parsing complete. Found {} events", events.len());
+        Ok(events)
+    }
+    
+    /// Extract program ID from invoke log line
+    fn extract_program_id_from_log(log: &str) -> Option<String> {
+        // Log format: "Program <pubkey> invoke [depth]"
+        if let Some(start) = log.find("Program ") {
+            let after_program = &log[start + 8..];
+            if let Some(end) = after_program.find(" invoke") {
+                return Some(after_program[..end].to_string());
+            }
+        }
+        None
+    }
 
-    /// Parse log data into event list
+    /// Parse log data into event list (legacy method for backward compatibility)
     pub fn parse_event_from_logs(
         &self,
         logs: &[String],
