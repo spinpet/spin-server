@@ -360,11 +360,13 @@ impl SolanaEventListener {
         Ok(())
     }
 
-    /// Handle WebSocket messages
+    /// Handle WebSocket messages with enhanced transaction processing
     async fn handle_websocket_message(
         message: &str,
         event_parser: &EventParser,
         event_sender: &Option<mpsc::UnboundedSender<SpinPetEvent>>,
+        client: &Arc<SolanaClient>,
+        processed_signatures: &Arc<tokio::sync::RwLock<HashSet<String>>>,
     ) -> anyhow::Result<()> {
         debug!("📨 Received WebSocket message: {}", message);
         
