@@ -295,6 +295,32 @@ impl SolanaClient {
             }
         }).await
     }
+    
+    /// Get transaction with full logs including CPI calls
+    pub async fn get_transaction_with_logs(&self, signature: &str) -> Result<Value> {
+        let signature_str = signature.to_string();
+        self.execute_with_retry(move |client| {
+            let sig = Signature::from_str(&signature_str)?;
+            let config = RpcTransactionConfig {
+                encoding: Some(UiTransactionEncoding::Json),
+                commitment: Some(CommitmentConfig::finalized()),
+                max_supported_transaction_version: Some(0),
+            };
+            
+            match client.get_transaction_with_config(&sig, config) {
+                Ok(transaction) => {
+                    // Convert the transaction to JSON for easier parsing
+                    let json = serde_json::to_value(&transaction)?;
+                    debug!("Got transaction details for {}", signature_str);
+                    Ok(json)
+                }
+                Err(e) => {
+                    warn!("Failed to get transaction {}: {}", signature_str, e);
+                    Err(anyhow::anyhow!("Failed to get transaction: {}", e))
+                }
+            }
+        }).await
+    }
 
     /// Check RPC connection status with automatic reconnection attempt
     pub async fn check_connection(&self) -> Result<bool> {
