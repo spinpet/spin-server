@@ -1,5 +1,5 @@
 {
-  "address": "8j79sfEAgHjRmJS38TvXoRzqb4hhdzspmsR8sNNKX3ve",
+  "address": "JBMmrp6jhksqnxDBskkmVvWHhJLaPBjgiMHEroJbUTBZ",
   "metadata": {
     "name": "spinpet",
     "version": "0.1.0",
@@ -276,56 +276,6 @@
           "name": "order9",
           "writable": true,
           "optional": true
-        },
-        {
-          "name": "order10",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order11",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order12",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order13",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order14",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order15",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order16",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order17",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order18",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order19",
-          "writable": true,
-          "optional": true
         }
       ],
       "args": [
@@ -542,56 +492,6 @@
           "name": "order9",
           "writable": true,
           "optional": true
-        },
-        {
-          "name": "order10",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order11",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order12",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order13",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order14",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order15",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order16",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order17",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order18",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order19",
-          "writable": true,
-          "optional": true
         }
       ],
       "args": [
@@ -806,56 +706,6 @@
         },
         {
           "name": "order9",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order10",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order11",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order12",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order13",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order14",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order15",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order16",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order17",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order18",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order19",
           "writable": true,
           "optional": true
         }
@@ -1326,56 +1176,6 @@
           "name": "order9",
           "writable": true,
           "optional": true
-        },
-        {
-          "name": "order10",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order11",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order12",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order13",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order14",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order15",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order16",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order17",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order18",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order19",
-          "writable": true,
-          "optional": true
         }
       ],
       "args": [
@@ -1680,56 +1480,6 @@
           "name": "order9",
           "writable": true,
           "optional": true
-        },
-        {
-          "name": "order10",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order11",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order12",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order13",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order14",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order15",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order16",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order17",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order18",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order19",
-          "writable": true,
-          "optional": true
         }
       ],
       "args": [
@@ -1978,56 +1728,6 @@
         },
         {
           "name": "order9",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order10",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order11",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order12",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order13",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order14",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order15",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order16",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order17",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order18",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "order19",
           "writable": true,
           "optional": true
         }
@@ -2477,7 +2177,7 @@
     {
       "code": 6016,
       "name": "ExceedsMaxSolAmount",
-      "msg": "超出最大SOL金额限制"
+      "msg": "用户设置的最大SOL可使用金额不足"
     },
     {
       "code": 6017,
@@ -2517,7 +2217,7 @@
     {
       "code": 6024,
       "name": "TokenAmountDifferenceOutOfRange",
-      "msg": "保证金交易时区间计算差值太大"
+      "msg": "保证金交易时,区间计算误差值太大"
     },
     {
       "code": 6025,
@@ -2547,12 +2247,12 @@
     {
       "code": 6030,
       "name": "UpHeadNotEmpty",
-      "msg": "上涨链表头不为空，无法进行普通买入交易"
+      "msg": "上涨链表头不为空，而客户端传入空值,无法进行普通买入交易"
     },
     {
       "code": 6031,
       "name": "DownHeadNotEmpty",
-      "msg": "下跌链表头不为空，无法进行普通卖出交易"
+      "msg": "下跌链表头不为空，而客户端传入空值,无法进行普通卖出交易"
     },
     {
       "code": 6032,
@@ -2643,6 +2343,26 @@
       "code": 6049,
       "name": "InvalidFeePercentage",
       "msg": "手续费分配比例必须在0-100之间"
+    },
+    {
+      "code": 6050,
+      "name": "InvalidLpPairsCount",
+      "msg": "LP配对数组长度必须等于MAX_ORDERS_COUNT"
+    },
+    {
+      "code": 6051,
+      "name": "InvalidStopLossPrice",
+      "msg": "止损价格不满足最小间隔要求"
+    },
+    {
+      "code": 6052,
+      "name": "InvalidOrderChainSequence",
+      "msg": "ctx带入的链表顺序错乱"
+    },
+    {
+      "code": 6053,
+      "name": "PartialCloseNotSupport",
+      "msg": "暂时不支持部份平仓"
     }
   ],
   "types": [
@@ -3014,6 +2734,10 @@
           {
             "name": "borrow_fee",
             "type": "u16"
+          },
+          {
+            "name": "debug_num",
+            "type": "u64"
           },
           {
             "name": "bump",
