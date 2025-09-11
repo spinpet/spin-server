@@ -450,12 +450,15 @@ impl SolanaEventListener {
                         });
                         
                         if has_cpi {
-                            info!("🔍 Detected CPI calls in transaction {}, fetching full details", signature);
+                            info!("Detected CPI calls in transaction {}, fetching full details", signature);
                             
-                            // 获取完整交易详情
+                            // Get full transaction details
                             match client.get_transaction_with_logs(signature).await {
                                 Ok(tx_details) => {
-                                    if let Some(meta) = tx_details.get("meta").and_then(|m| m.as_object()) {
+                                    // Check if we got valid transaction data
+                                    if !tx_details.is_object() || tx_details.as_object().map_or(true, |o| o.is_empty()) {
+                                        debug!("Transaction {} not available yet, using WebSocket logs only", signature);
+                                    } else if let Some(meta) = tx_details.get("meta").and_then(|m| m.as_object()) {
                                         if let Some(full_logs) = meta.get("logMessages").and_then(|l| l.as_array()) {
                                             let full_log_strings: Vec<String> = full_logs
                                                 .iter()
@@ -465,12 +468,12 @@ impl SolanaEventListener {
                                             
                                             debug!("Got {} logs from transaction details", full_log_strings.len());
                                             
-                                            // 重新解析完整日志
+                                            // Re-parse complete logs
                                             match event_parser.parse_events_with_call_stack(&full_log_strings, signature, slot) {
                                                 Ok(events) => {
                                                     debug!("Found {} additional events from full transaction", events.len());
                                                     for event in events {
-                                                        // 避免重复添加
+                                                        // Avoid duplicates
                                                         if !Self::event_exists_in_list(&all_events, &event) {
                                                             all_events.push(event);
                                                         }
