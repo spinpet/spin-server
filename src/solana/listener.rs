@@ -311,7 +311,10 @@ impl SolanaEventListener {
                 match msg {
                     Ok(Message::Text(text)) => {
                         debug!("📨 Received text message: {}", text);
-                        if let Err(e) = Self::handle_websocket_message(
+                        // Note: We need to pass client and processed_signatures here
+                        // But they are not available in this context
+                        // We'll need to restructure this
+                        if let Err(e) = Self::handle_websocket_message_simple(
                             &text, 
                             &event_parser, 
                             &event_sender
