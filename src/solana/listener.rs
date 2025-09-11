@@ -303,6 +303,8 @@ impl SolanaEventListener {
         let event_parser = event_parser.clone();
         let reconnect_sender = reconnect_sender.clone();
         let should_stop = Arc::clone(should_stop);
+        let client = Arc::clone(client);
+        let processed_signatures = Arc::clone(processed_signatures);
         
         tokio::spawn(async move {
             info!("🎧 Started listening to WebSocket messages");
@@ -316,13 +318,12 @@ impl SolanaEventListener {
                 match msg {
                     Ok(Message::Text(text)) => {
                         debug!("📨 Received text message: {}", text);
-                        // Note: We need to pass client and processed_signatures here
-                        // But they are not available in this context
-                        // We'll need to restructure this
-                        if let Err(e) = Self::handle_websocket_message_simple(
+                        if let Err(e) = Self::handle_websocket_message(
                             &text, 
                             &event_parser, 
-                            &event_sender
+                            &event_sender,
+                            &client,
+                            &processed_signatures
                         ).await {
                             error!("Failed to process WebSocket message: {}", e);
                         }
