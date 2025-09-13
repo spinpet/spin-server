@@ -436,7 +436,8 @@
         },
         {
           "name": "close_order",
-          "writable": true
+          "writable": true,
+          "optional": true
         },
         {
           "name": "next_order",
@@ -512,6 +513,22 @@
         {
           "name": "min_sol_output",
           "type": "u64"
+        },
+        {
+          "name": "prev_order_id",
+          "type": "u8"
+        },
+        {
+          "name": "close_order_id",
+          "type": "u8"
+        },
+        {
+          "name": "next_order_id",
+          "type": "u8"
+        },
+        {
+          "name": "close_order_address",
+          "type": "string"
         }
       ]
     },
@@ -652,7 +669,8 @@
         },
         {
           "name": "close_order",
-          "writable": true
+          "writable": true,
+          "optional": true
         },
         {
           "name": "next_order",
@@ -728,6 +746,22 @@
         {
           "name": "max_sol_amount",
           "type": "u64"
+        },
+        {
+          "name": "prev_order_id",
+          "type": "u8"
+        },
+        {
+          "name": "close_order_id",
+          "type": "u8"
+        },
+        {
+          "name": "next_order_id",
+          "type": "u8"
+        },
+        {
+          "name": "close_order_address",
+          "type": "string"
         }
       ]
     },
@@ -837,6 +871,14 @@
               }
             ]
           }
+        },
+        {
+          "name": "metadata",
+          "writable": true
+        },
+        {
+          "name": "metadata_program",
+          "address": "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
         },
         {
           "name": "params"
@@ -2156,213 +2198,233 @@
     },
     {
       "code": 6012,
-      "name": "MathError",
-      "msg": "数学计算错误"
-    },
-    {
-      "code": 6013,
       "name": "PriceSpanTooSmall",
       "msg": "价格区间太小"
     },
     {
-      "code": 6014,
-      "name": "MathOverflow",
-      "msg": "数学运算溢出"
-    },
-    {
-      "code": 6015,
+      "code": 6013,
       "name": "CurveCalculationError",
       "msg": "曲线计算错误"
     },
     {
-      "code": 6016,
+      "code": 6014,
       "name": "ExceedsMaxSolAmount",
       "msg": "用户设置的最大SOL可使用金额不足"
     },
     {
-      "code": 6017,
+      "code": 6015,
       "name": "InsufficientTokenOutput",
       "msg": "获得的代币数量不足"
     },
     {
-      "code": 6018,
+      "code": 6016,
       "name": "InsufficientTokenBalance",
       "msg": "代币余额不足"
     },
     {
-      "code": 6019,
+      "code": 6017,
       "name": "InsufficientSolOutput",
       "msg": "获得的SOL数量不足"
     },
     {
-      "code": 6020,
+      "code": 6018,
       "name": "InsufficientRepayment",
       "msg": "平仓收益不足以偿还借款"
     },
     {
-      "code": 6021,
+      "code": 6019,
       "name": "InsufficientBorrowingReserve",
       "msg": "借款请求超过可用储备"
     },
     {
-      "code": 6022,
+      "code": 6020,
       "name": "InsufficientTokenSale",
       "msg": "实际卖出的代币数量不足"
     },
     {
-      "code": 6023,
+      "code": 6021,
       "name": "InsufficientLiquidity",
       "msg": "当前订单可提供的流动性不足"
     },
     {
-      "code": 6024,
+      "code": 6022,
       "name": "TokenAmountDifferenceOutOfRange",
       "msg": "保证金交易时,区间计算误差值太大"
     },
     {
-      "code": 6025,
+      "code": 6023,
       "name": "ArithmeticOverflow",
       "msg": "计算过程中发生数学溢出"
     },
     {
-      "code": 6026,
+      "code": 6024,
       "name": "BorrowAmountMismatch",
       "msg": "借款金额与锁定代币数量不匹配"
     },
     {
-      "code": 6027,
+      "code": 6025,
       "name": "CloseFeeCalculationError",
       "msg": "平仓手续费计算错误"
     },
     {
-      "code": 6028,
+      "code": 6026,
       "name": "InsufficientCloseProfit",
       "msg": "平仓收益不足"
     },
     {
-      "code": 6029,
+      "code": 6027,
       "name": "CloseTransferError",
       "msg": "平仓转账错误"
     },
     {
-      "code": 6030,
+      "code": 6028,
       "name": "UpHeadNotEmpty",
       "msg": "上涨链表头不为空，而客户端传入空值,无法进行普通买入交易"
     },
     {
-      "code": 6031,
+      "code": 6029,
       "name": "DownHeadNotEmpty",
       "msg": "下跌链表头不为空，而客户端传入空值,无法进行普通卖出交易"
     },
     {
-      "code": 6032,
+      "code": 6030,
       "name": "UpHeadOrderMismatch",
       "msg": "上涨链表头与orders[0]不匹配"
     },
     {
-      "code": 6033,
+      "code": 6031,
       "name": "DownHeadOrderMismatch",
       "msg": "下跌链表头与orders[0]不匹配"
     },
     {
-      "code": 6034,
+      "code": 6032,
       "name": "InsufficientMargin",
       "msg": "保证金不足"
     },
     {
-      "code": 6035,
+      "code": 6033,
       "name": "InsufficientMinimumMargin",
       "msg": "保证金低于最小限制"
     },
     {
-      "code": 6036,
+      "code": 6034,
       "name": "InvalidAccountOwner",
       "msg": "账户所有者不正确"
     },
     {
-      "code": 6037,
+      "code": 6035,
       "name": "AccountBorrowFailed",
       "msg": "账户借用失败"
     },
     {
-      "code": 6038,
+      "code": 6036,
       "name": "SellAmountExceedsOrderAmount",
       "msg": "卖出数量超过订单持有的代币数量"
     },
     {
-      "code": 6039,
+      "code": 6037,
       "name": "OrderNotExpiredMustCloseByOwner",
       "msg": "未超时订单必须由开仓者平仓"
     },
     {
-      "code": 6040,
+      "code": 6038,
       "name": "SettlementAddressMustBeOwnerAddress",
       "msg": "结算地址必须是开仓地址"
     },
     {
-      "code": 6041,
+      "code": 6039,
       "name": "BuyAmountExceedsOrderAmount",
       "msg": "买入数量超过订单持有的代币数量"
     },
     {
-      "code": 6042,
+      "code": 6040,
       "name": "InsufficientTradeAmount",
       "msg": "交易数量低于最小限制"
     },
     {
-      "code": 6043,
+      "code": 6041,
       "name": "RemainingTokenAmountTooSmall",
       "msg": "剩余代币数量低于最小交易限制"
     },
     {
-      "code": 6044,
+      "code": 6042,
       "name": "PriceCalculationError",
       "msg": "价格计算错误"
     },
     {
-      "code": 6045,
+      "code": 6043,
       "name": "InvalidFeeRecipientAccount",
       "msg": "手续费接收账户地址不匹配"
     },
     {
-      "code": 6046,
+      "code": 6044,
       "name": "InvalidOrderMintAddress",
       "msg": "订单mint地址与curve账户mint不匹配"
     },
     {
-      "code": 6047,
+      "code": 6045,
       "name": "InsufficientStopLossLiquidity",
       "msg": "止损单预留流动性不足"
     },
     {
-      "code": 6048,
+      "code": 6046,
       "name": "InvalidOrderIndex",
       "msg": "无效的订单索引"
     },
     {
-      "code": 6049,
+      "code": 6047,
       "name": "InvalidFeePercentage",
       "msg": "手续费分配比例必须在0-100之间"
     },
     {
-      "code": 6050,
+      "code": 6048,
       "name": "InvalidLpPairsCount",
       "msg": "LP配对数组长度必须等于MAX_ORDERS_COUNT"
     },
     {
-      "code": 6051,
+      "code": 6049,
       "name": "InvalidStopLossPrice",
       "msg": "止损价格不满足最小间隔要求"
     },
     {
-      "code": 6052,
+      "code": 6050,
       "name": "InvalidOrderChainSequence",
-      "msg": "ctx带入的链表顺序错乱"
+      "msg": "ctx带入的,或强平时,链表顺序错乱"
+    },
+    {
+      "code": 6051,
+      "name": "InvalidCloseOrderId",
+      "msg": "无效的平仓订单ID"
+    },
+    {
+      "code": 6052,
+      "name": "PartialCloseNotSupport",
+      "msg": "暂时不支持部份平仓"
     },
     {
       "code": 6053,
-      "name": "PartialCloseNotSupport",
-      "msg": "暂时不支持部份平仓"
+      "name": "DuplicateValidIndices",
+      "msg": "获取多个可变引用时未越界的索引不能重复"
+    },
+    {
+      "code": 6054,
+      "name": "NoProfitableFunds",
+      "msg": "无盈利资金可转移"
+    },
+    {
+      "code": 6055,
+      "name": "PositionAssetIsZero",
+      "msg": "持仓资产为零"
+    },
+    {
+      "code": 6056,
+      "name": "InvalidOrderType",
+      "msg": "订单类型不匹配预期值"
+    },
+    {
+      "code": 6057,
+      "name": "CloseOrderAddressMismatch",
+      "msg": "平仓订单地址与实际地址不匹配"
     }
   ],
   "types": [
@@ -2736,8 +2798,12 @@
             "type": "u16"
           },
           {
-            "name": "debug_num",
+            "name": "short_fee_amount",
             "type": "u64"
+          },
+          {
+            "name": "open_price",
+            "type": "u128"
           },
           {
             "name": "bump",
