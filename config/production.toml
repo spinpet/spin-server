@@ -17,6 +17,7 @@ ws_url = "ws://localhost:8900"
 program_id = "JBMmrp6jhksqnxDBskkmVvWHhJLaPBjgiMHEroJbUTBZ"
 # Event listener configuration
 enable_event_listener = true
+commitment = "confirmed"  # processed/confirmed/finalized
 reconnect_interval = 10000  # Longer reconnect interval for production
 max_reconnect_attempts = 20
 # Event processing configuration
