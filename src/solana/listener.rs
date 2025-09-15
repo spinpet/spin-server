@@ -408,6 +408,17 @@ impl SolanaEventListener {
                         }
                     };
                     
+                    // 检查交易是否成功执行
+                    let transaction_error = value.get("err");
+                    let is_transaction_success = transaction_error.is_none() || transaction_error == Some(&Value::Null);
+                    
+                    if !is_transaction_success {
+                        warn!("❌ Transaction {} failed with error: {:?} - SKIPPING processing", signature, transaction_error);
+                        return Ok(());  // 出错的消息直接跳过，不做任何处理
+                    }
+                    
+                    debug!("✅ Transaction {} executed successfully", signature);
+                    
                     // 检查是否已处理过这个签名
                     {
                         let mut processed = processed_signatures.write().await;

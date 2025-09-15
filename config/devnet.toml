@@ -1,0 +1,27 @@
+[server]
+host = "0.0.0.0"
+port = 5055
+
+[cors]
+enabled = true
+allow_origins = ["*"]
+
+[logging]
+level = "debug" 
+
+[solana]
+# Production environment Solana configuration
+rpc_url = "https://mainnet.helius-rpc.com/?api-key=24f301c4-bf6f-429c-b8fb-e6bdea9779b6"
+ws_url = "wss://mainnet.helius-rpc.com/?api-key=24f301c4-bf6f-429c-b8fb-e6bdea9779b6"
+# Please replace with the actual Spin Pet program ID
+program_id = "JBMmrp6jhksqnxDBskkmVvWHhJLaPBjgiMHEroJbUTBZ"
+# Event listener configuration
+enable_event_listener = true
+reconnect_interval = 5000  # Longer reconnect interval for production
+max_reconnect_attempts = 10
+# Event processing configuration
+event_buffer_size = 1000
+event_batch_size = 100
+
+[database]
+rocksdb_path = "./data/devnet_rocksdb" 

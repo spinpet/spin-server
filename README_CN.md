@@ -634,6 +634,9 @@ graph LR
 1. 确保安装了 Rust 和 Cargo
 2. 配置 `config/default.toml` 或相应环境的配置文件
 3. 执行以下命令启动服务器：
+4. 生产环境：RUST_ENV=production cargo run  # 加载 production.toml 覆盖
+5. 其它环境：在 config 目录中创建新的配置  config/local.toml - 本地开发 
+RUST_ENV=devnet cargo run
 
 ```bash
 cargo run --release
