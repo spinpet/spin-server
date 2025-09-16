@@ -162,7 +162,7 @@ impl SolanaEventListener {
                     }
                 }
                 
-                info!("🎯 Event processor stopped");
+                warn!("🎯 Event processor stopped - this may indicate connection issues");
             });
         }
         
@@ -256,7 +256,7 @@ impl SolanaEventListener {
                     }
                 }
                 
-                info!("🔄 Reconnection handler stopped");
+                error!("🔄 Reconnection handler stopped unexpectedly! This should not happen.");
             });
         }
         
