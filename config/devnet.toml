@@ -11,8 +11,8 @@ level = "debug"
 
 [solana]
 # Production environment Solana configuration
-rpc_url = "https://mainnet.helius-rpc.com/?api-key=24f301c4-bf6f-429c-b8fb-e6bdea9779b6"
-ws_url = "wss://mainnet.helius-rpc.com/?api-key=24f301c4-bf6f-429c-b8fb-e6bdea9779b6"
+rpc_url = "https://devnet.helius-rpc.com/?api-key=666f279b-0b08-41cd-97f4-461811d7fc7a"
+ws_url = "wss://devnet.helius-rpc.com/?api-key=666f279b-0b08-41cd-97f4-461811d7fc7a"
 # Please replace with the actual Spin Pet program ID
 program_id = "JBMmrp6jhksqnxDBskkmVvWHhJLaPBjgiMHEroJbUTBZ"
 # Event listener configuration

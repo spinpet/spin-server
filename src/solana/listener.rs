@@ -395,7 +395,8 @@ impl SolanaEventListener {
                     Ok(Message::Ping(data)) => {
                         debug!("🏓 Received Ping from server, responding with Pong");
                         // Respond to ping with pong
-                        if let Err(e) = ping_writer.send(Message::Pong(data)).await {
+                        let mut writer = shared_writer.lock().await;
+                        if let Err(e) = writer.send(Message::Pong(data)).await {
                             warn!("Failed to send pong response: {}", e);
                         }
                     }
