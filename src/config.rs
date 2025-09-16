@@ -42,6 +42,8 @@ pub struct SolanaConfig {
     pub event_buffer_size: usize,
     #[allow(dead_code)]
     pub event_batch_size: usize,
+    #[allow(dead_code)]
+    pub ping_interval_seconds: u64,
 }
 
 #[derive(Debug, Deserialize, Clone)]
