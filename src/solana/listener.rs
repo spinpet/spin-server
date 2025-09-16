@@ -320,6 +320,34 @@ impl SolanaEventListener {
         let client = Arc::clone(client);
         let processed_signatures = Arc::clone(processed_signatures);
         
+        // Clone the write half for ping handling
+        let mut ping_writer = write.clone();
+        
+        // Start ping task to keep connection alive (every 60 seconds)
+        let ping_should_stop = Arc::clone(&should_stop);
+        let mut ping_writer_task = write.clone();
+        tokio::spawn(async move {
+            info!("💓 Starting WebSocket ping task (every 60 seconds)");
+            let mut ping_interval = tokio::time::interval(Duration::from_secs(60));
+            ping_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            
+            loop {
+                ping_interval.tick().await;
+                
+                if *ping_should_stop.read().await {
+                    info!("Ping task received stop signal");
+                    break;
+                }
+                
+                debug!("💓 Sending ping to keep WebSocket alive");
+                if let Err(e) = ping_writer_task.send(Message::Ping(vec![])).await {
+                    warn!("Failed to send ping: {}", e);
+                    break;
+                }
+            }
+            info!("💓 Ping task stopped");
+        });
+        
         tokio::spawn(async move {
             info!("🎧 Started listening to WebSocket messages");
             while let Some(msg) = read.next().await {
