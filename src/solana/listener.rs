@@ -179,13 +179,14 @@ impl SolanaEventListener {
             let event_parser = self.event_parser.clone();
             
             tokio::spawn(async move {
-                info!("🔄 Reconnection handler started");
+                info!("🔄 Reconnection handler started and ready to receive signals");
                 let mut reconnect_attempts = 0u32;
                 
                 while let Some(_) = receiver.recv().await {
+                    info!("🔔 Reconnection handler received signal");
                     // Check if we should stop
                     if *should_stop.read().await {
-                        info!("Reconnection handler received stop signal");
+                        info!("Reconnection handler received stop signal, exiting");
                         break;
                     }
                     
@@ -333,10 +334,17 @@ impl SolanaEventListener {
                         // Connection closed - trigger reconnection unless we're stopping
                         if !*should_stop.read().await {
                             if let Some(sender) = &reconnect_sender {
+                                info!("📡 Sending reconnect signal due to connection close");
                                 if let Err(e) = sender.send(()) {
                                     error!("Failed to send reconnect signal: {}", e);
+                                } else {
+                                    info!("✅ Reconnect signal sent successfully");
                                 }
+                            } else {
+                                error!("❌ Reconnect sender is None, cannot trigger reconnection");
                             }
+                        } else {
+                            info!("Stop signal is active, skipping reconnection");
                         }
                         break;
                     }
@@ -351,10 +359,17 @@ impl SolanaEventListener {
                         // WebSocket error - trigger reconnection unless we're stopping
                         if !*should_stop.read().await {
                             if let Some(sender) = &reconnect_sender {
+                                info!("📡 Sending reconnect signal due to WebSocket error: {}", e);
                                 if let Err(send_err) = sender.send(()) {
                                     error!("Failed to send reconnect signal: {}", send_err);
+                                } else {
+                                    info!("✅ Reconnect signal sent successfully");
                                 }
+                            } else {
+                                error!("❌ Reconnect sender is None, cannot trigger reconnection");
                             }
+                        } else {
+                            info!("Stop signal is active, skipping reconnection");
                         }
                         break;
                     }
