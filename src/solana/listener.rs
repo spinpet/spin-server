@@ -288,7 +288,7 @@ impl SolanaEventListener {
                     "mentions": [config.program_id]
                 },
                 {
-                    "commitment": "processed" // processed finalized confirmed
+                    "commitment": config.commitment
                 }
             ]
         });

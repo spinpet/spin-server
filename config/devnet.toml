@@ -17,6 +17,7 @@ ws_url = "wss://mainnet.helius-rpc.com/?api-key=24f301c4-bf6f-429c-b8fb-e6bdea97
 program_id = "JBMmrp6jhksqnxDBskkmVvWHhJLaPBjgiMHEroJbUTBZ"
 # Event listener configuration
 enable_event_listener = true
+commitment = "confirmed"  # processed/confirmed/finalized
 reconnect_interval = 5000  # Longer reconnect interval for production
 max_reconnect_attempts = 10
 # Event processing configuration

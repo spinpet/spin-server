@@ -638,6 +638,9 @@ graph LR
 5. 其它环境：在 config 目录中创建新的配置  config/local.toml - 本地开发 
 RUST_ENV=devnet cargo run
 
+RUST_ENV=devnet ./spin-server
+
+
 ```bash
 cargo run --release
 ```
