@@ -23,6 +23,8 @@ max_reconnect_attempts = 10
 # Event processing configuration
 event_buffer_size = 1000
 event_batch_size = 100
+# WebSocket ping interval in seconds (default: 60)
+ping_interval_seconds = 60
 
 [database]
 rocksdb_path = "./data/rocksdb" 
