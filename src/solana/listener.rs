@@ -181,9 +181,13 @@ impl SolanaEventListener {
             tokio::spawn(async move {
                 info!("🔄 Reconnection handler started and ready to receive signals");
                 let mut reconnect_attempts = 0u32;
+                let mut last_reconnect_time = std::time::Instant::now();
                 
                 while let Some(_) = receiver.recv().await {
-                    info!("🔔 Reconnection handler received signal");
+                    let elapsed_since_last = last_reconnect_time.elapsed();
+                    info!("🔔 Reconnection handler received signal ({}s since last signal)", elapsed_since_last.as_secs());
+                    last_reconnect_time = std::time::Instant::now();
+                    
                     // Check if we should stop
                     if *should_stop.read().await {
                         info!("Reconnection handler received stop signal, exiting");
@@ -645,13 +649,21 @@ impl SolanaEventListener {
     
     /// Get connection health status
     pub async fn get_connection_health(&self) -> serde_json::Value {
+        let processed_count = self.processed_signatures.read().await.len();
+        let reconnect_sender_active = self.reconnect_sender.is_some();
+        let event_sender_active = self.event_sender.is_some();
+        
         serde_json::json!({
             "is_running": self.is_running,
             "reconnect_attempts": self.reconnect_attempts,
             "max_reconnect_attempts": self.config.max_reconnect_attempts,
             "should_stop": *self.should_stop.read().await,
             "ws_url": self.config.ws_url,
-            "program_id": self.config.program_id
+            "program_id": self.config.program_id,
+            "processed_signatures_count": processed_count,
+            "reconnect_sender_active": reconnect_sender_active,
+            "event_sender_active": event_sender_active,
+            "reconnect_interval": self.config.reconnect_interval
         })
     }
 }
