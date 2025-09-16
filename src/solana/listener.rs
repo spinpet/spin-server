@@ -327,8 +327,8 @@ impl SolanaEventListener {
         let ping_should_stop = Arc::clone(&should_stop);
         let mut ping_writer_task = write.clone();
         tokio::spawn(async move {
-            info!("💓 Starting WebSocket ping task (every 60 seconds)");
-            let mut ping_interval = tokio::time::interval(Duration::from_secs(60));
+            info!("💓 Starting WebSocket ping task (every {} seconds)", config.ping_interval_seconds);
+            let mut ping_interval = tokio::time::interval(Duration::from_secs(config.ping_interval_seconds));
             ping_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
             
             loop {
