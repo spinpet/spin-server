@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::collections::HashSet;
 use async_trait::async_trait;
 use uuid::Uuid;
+use tokio::sync::Mutex;
 
 /// Event listener trait
 #[async_trait]
@@ -320,15 +321,16 @@ impl SolanaEventListener {
         let client = Arc::clone(client);
         let processed_signatures = Arc::clone(processed_signatures);
         
-        // Clone the write half for ping handling
-        let mut ping_writer = write.clone();
+        // Share the write half between message handler and ping task
+        let shared_writer = Arc::new(Mutex::new(write));
         
-        // Start ping task to keep connection alive (every 60 seconds)
+        // Start ping task to keep connection alive
         let ping_should_stop = Arc::clone(&should_stop);
-        let mut ping_writer_task = write.clone();
+        let ping_writer = Arc::clone(&shared_writer);
+        let ping_config = config.clone();
         tokio::spawn(async move {
-            info!("💓 Starting WebSocket ping task (every {} seconds)", config.ping_interval_seconds);
-            let mut ping_interval = tokio::time::interval(Duration::from_secs(config.ping_interval_seconds));
+            info!("💓 Starting WebSocket ping task (every {} seconds)", ping_config.ping_interval_seconds);
+            let mut ping_interval = tokio::time::interval(Duration::from_secs(ping_config.ping_interval_seconds));
             ping_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
             
             loop {
@@ -340,7 +342,8 @@ impl SolanaEventListener {
                 }
                 
                 debug!("💓 Sending ping to keep WebSocket alive");
-                if let Err(e) = ping_writer_task.send(Message::Ping(vec![])).await {
+                let mut writer = ping_writer.lock().await;
+                if let Err(e) = writer.send(Message::Ping(vec![])).await {
                     warn!("Failed to send ping: {}", e);
                     break;
                 }
