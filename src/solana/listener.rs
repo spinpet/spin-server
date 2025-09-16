@@ -216,6 +216,8 @@ impl SolanaEventListener {
                             return;
                         }
                         
+                        info!("🔄 Starting reconnection attempt {} with {} second delay", reconnect_attempts, delay);
+                        
                         // Attempt to reconnect  
                         // Note: We don't pass reconnect_sender here to avoid infinite recursion
                         // If this reconnection fails, we'll try again in the next iteration
@@ -236,7 +238,14 @@ impl SolanaEventListener {
                                 break; // Exit the reconnection loop, wait for next signal
                             }
                             Err(e) => {
-                                error!("❌ Reconnection attempt {} failed: {}", reconnect_attempts, e);
+                                error!("❌ Reconnection attempt {}/{} failed: {}", reconnect_attempts, config.max_reconnect_attempts, e);
+                                
+                                // If we've exhausted all attempts, wait for a new signal
+                                if reconnect_attempts >= config.max_reconnect_attempts {
+                                    error!("❌ All reconnection attempts exhausted. Waiting for new connection signal.");
+                                    reconnect_attempts = 0; // Reset for next signal
+                                    break;
+                                }
                                 // Continue the loop to try again
                             }
                         }
