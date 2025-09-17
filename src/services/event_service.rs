@@ -125,7 +125,7 @@ impl EventService {
         
         // Initialize listener
         listener_manager.initialize(
-            config.clone(),
+            config.solana.clone(),
             Arc::clone(&client),
             Arc::clone(&event_handler) as Arc<dyn EventHandler>,
         )?;
@@ -135,7 +135,7 @@ impl EventService {
             listener_manager,
             event_handler,
             event_storage,
-            config,
+            config: config.solana.clone(),
         })
     }
 
