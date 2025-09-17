@@ -1411,8 +1411,39 @@ mod tests {
     #[tokio::test]
     async fn test_event_storage() {
         let temp_dir = TempDir::new().unwrap();
-        let config = crate::config::DatabaseConfig {
-            rocksdb_path: temp_dir.path().to_str().unwrap().to_string(),
+        let config = crate::config::Config {
+            server: crate::config::ServerConfig {
+                host: "localhost".to_string(),
+                port: 8080,
+            },
+            cors: crate::config::CorsConfig {
+                enabled: true,
+                allow_origins: vec!["*".to_string()],
+            },
+            logging: crate::config::LoggingConfig {
+                level: "debug".to_string(),
+            },
+            solana: crate::config::SolanaConfig {
+                rpc_url: "http://localhost:8899".to_string(),
+                ws_url: "ws://localhost:8900".to_string(),
+                program_id: "JBMmrp6jhksqnxDBskkmVvWHhJLaPBjgiMHEroJbUTBZ".to_string(),
+                enable_event_listener: false,
+                commitment: "processed".to_string(),
+                reconnect_interval: 1,
+                max_reconnect_attempts: 20,
+                event_buffer_size: 1000,
+                event_batch_size: 100,
+                ping_interval_seconds: 60,
+            },
+            database: crate::config::DatabaseConfig {
+                rocksdb_path: temp_dir.path().to_str().unwrap().to_string(),
+            },
+            ipfs: crate::config::IpfsConfig {
+                gateway_url: "https://crimson-binding-tarantula-509.mypinata.cloud/ipfs/".to_string(),
+                request_timeout_seconds: 30,
+                max_retries: 3,
+                retry_delay_seconds: 5,
+            },
         };
         
         let storage = EventStorage::new(&config).unwrap();
