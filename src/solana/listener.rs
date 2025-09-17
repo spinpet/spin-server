@@ -206,9 +206,8 @@ impl SolanaEventListener {
                             break;
                         }
                         
-                        let delay = config.reconnect_interval * 2u64.pow(reconnect_attempts - 1);
-                        let max_delay = 300; // Max 5 minutes
-                        let delay = std::cmp::min(delay, max_delay);
+                        // Use fixed short delay for fast reconnection instead of exponential backoff
+                        let delay = config.reconnect_interval;
                         
                         warn!("🔄 Reconnection attempt {} of {}. Waiting {} seconds before retry...", 
                              reconnect_attempts, config.max_reconnect_attempts, delay);
