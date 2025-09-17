@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::collections::HashSet;
 use async_trait::async_trait;
 use uuid::Uuid;
-use ezsockets::{ClientConfig, CloseFrame, Error};
+use ezsockets::{ClientConfig, Error, ClientCloseMode};
 use url::Url;
 
 /// Event listener trait
@@ -112,7 +112,7 @@ pub struct SolanaWebSocketClient {
     event_handler: Arc<dyn EventHandler>,
     event_sender: Option<mpsc::UnboundedSender<SpinPetEvent>>,
     processed_signatures: Arc<tokio::sync::RwLock<HashSet<String>>>,
-    socket: Option<ezsockets::Socket<Self>>,
+    socket: Option<ezsockets::Socket>,
     reconnect_attempts: Arc<tokio::sync::RwLock<u32>>,
     is_connected: Arc<tokio::sync::RwLock<bool>>,
 }
@@ -379,21 +379,21 @@ impl Clone for SolanaWebSocketClient {
 
 #[async_trait]
 impl ezsockets::ClientExt for SolanaWebSocketClient {
-    type Params = ();
+    type Call = ();
 
-    async fn text(&mut self, text: String) -> Result<(), Error> {
+    async fn on_text(&mut self, text: String) -> Result<(), Error> {
         if let Err(e) = self.handle_websocket_message(&text).await {
             error!("Failed to handle WebSocket message: {}", e);
         }
         Ok(())
     }
 
-    async fn binary(&mut self, _bytes: Vec<u8>) -> Result<(), Error> {
+    async fn on_binary(&mut self, _bytes: Vec<u8>) -> Result<(), Error> {
         debug!("Received binary message (not expected for Solana WebSocket)");
         Ok(())
     }
 
-    async fn call(&mut self, _params: Self::Params) -> Result<(), Error> {
+    async fn on_call(&mut self, _call: Self::Call) -> Result<(), Error> {
         Ok(())
     }
 
@@ -410,7 +410,7 @@ impl ezsockets::ClientExt for SolanaWebSocketClient {
         Ok(())
     }
 
-    async fn on_disconnect(&mut self, _frame: Option<CloseFrame>) -> Result<(), Error> {
+    async fn on_disconnect(&mut self) -> Result<ClientCloseMode, Error> {
         warn!("🔌 WebSocket disconnected!");
         *self.is_connected.write().await = false;
         
@@ -419,14 +419,17 @@ impl ezsockets::ClientExt for SolanaWebSocketClient {
         
         if *attempts <= self.config.max_reconnect_attempts {
             info!("🔄 Will attempt to reconnect (attempt {} of {})", *attempts, self.config.max_reconnect_attempts);
+            // Use exponential backoff delay
+            let delay = std::cmp::min(2_u64.pow((*attempts - 1).min(5)), 60);
+            tokio::time::sleep(std::time::Duration::from_secs(delay)).await;
+            Ok(ClientCloseMode::Reconnect)
         } else {
             error!("❌ Max reconnection attempts ({}) exceeded", self.config.max_reconnect_attempts);
+            Ok(ClientCloseMode::Close)
         }
-        
-        Ok(())
     }
 
-    async fn on_connect_fail(&mut self, _error: Error) -> Result<(), Error> {
+    async fn on_connect_fail(&mut self, _error: ezsockets::WSError) -> Result<ClientCloseMode, Error> {
         error!("❌ WebSocket connection failed!");
         *self.is_connected.write().await = false;
         
@@ -435,11 +438,14 @@ impl ezsockets::ClientExt for SolanaWebSocketClient {
         
         if *attempts <= self.config.max_reconnect_attempts {
             warn!("🔄 Connection failed, will retry (attempt {} of {})", *attempts, self.config.max_reconnect_attempts);
+            // Use exponential backoff delay
+            let delay = std::cmp::min(2_u64.pow((*attempts - 1).min(5)), 60);
+            tokio::time::sleep(std::time::Duration::from_secs(delay)).await;
+            Ok(ClientCloseMode::Reconnect)
         } else {
             error!("❌ Max reconnection attempts ({}) exceeded", self.config.max_reconnect_attempts);
+            Ok(ClientCloseMode::Close)
         }
-        
-        Ok(())
     }
 }
 
