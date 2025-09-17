@@ -303,11 +303,17 @@ impl EventStorage {
         // 10. Optimize memory allocation
         opts.set_arena_block_size(64 * 1024 * 1024);         // 64MB arena blocks
         
-        let db = DB::open(&opts, &config.rocksdb_path)?;
+        let db = DB::open(&opts, &config.database.rocksdb_path)?;
         
-        info!("🗄️ RocksDB initialized successfully, path: {}", config.rocksdb_path);
+        let http_client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(config.ipfs.request_timeout_seconds))
+            .build()?;
+        
+        info!("🗄️ RocksDB initialized successfully, path: {}", config.database.rocksdb_path);
         Ok(Self {
             db: Arc::new(db),
+            config: config.clone(),
+            http_client,
         })
     }
 
