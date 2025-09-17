@@ -4818,6 +4818,7 @@ dependencies = [
  "config",
  "futures-util",
  "hex",
+ "rand 0.8.5",
  "reqwest",
  "rocksdb",
  "serde",
