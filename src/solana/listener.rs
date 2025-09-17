@@ -752,8 +752,8 @@ impl EventListener for SolanaEventListener {
 // Additional methods for SolanaEventListener (not part of EventListener trait)
 impl SolanaEventListener {
     /// Get current reconnection attempts count
-    pub fn get_reconnect_attempts(&self) -> u32 {
-        self.reconnect_attempts
+    pub async fn get_reconnect_attempts(&self) -> u32 {
+        *self.reconnect_attempts.read().await
     }
     
     /// Get connection health status
@@ -761,10 +761,13 @@ impl SolanaEventListener {
         let processed_count = self.processed_signatures.read().await.len();
         let reconnect_sender_active = self.reconnect_sender.is_some();
         let event_sender_active = self.event_sender.is_some();
+        let current_attempts = *self.reconnect_attempts.read().await;
+        let connection_state = self.connection_state.read().await.clone();
         
         serde_json::json!({
             "is_running": self.is_running,
-            "reconnect_attempts": self.reconnect_attempts,
+            "connection_state": format!("{:?}", connection_state),
+            "reconnect_attempts": current_attempts,
             "max_reconnect_attempts": self.config.max_reconnect_attempts,
             "should_stop": *self.should_stop.read().await,
             "ws_url": self.config.ws_url,
@@ -772,7 +775,8 @@ impl SolanaEventListener {
             "processed_signatures_count": processed_count,
             "reconnect_sender_active": reconnect_sender_active,
             "event_sender_active": event_sender_active,
-            "reconnect_interval": self.config.reconnect_interval
+            "reconnect_interval": self.config.reconnect_interval,
+            "ping_interval_seconds": self.config.ping_interval_seconds
         })
     }
 }
