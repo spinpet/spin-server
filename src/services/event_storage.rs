@@ -524,6 +524,69 @@ impl EventStorage {
         format!("in:{}", mint_account)
     }
 
+    /// Extract IPFS hash from URI
+    fn extract_ipfs_hash(uri: &str) -> Option<String> {
+        if let Some(hash) = uri.strip_prefix("https://ipfs.io/ipfs/") {
+            Some(hash.to_string())
+        } else if uri.starts_with("ipfs://") {
+            Some(uri[7..].to_string())
+        } else {
+            // Try to extract hash from other common IPFS patterns
+            if uri.contains("/ipfs/") {
+                if let Some(pos) = uri.find("/ipfs/") {
+                    let start = pos + 6; // "/ipfs/".len()
+                    let hash = &uri[start..];
+                    // Find the end of the hash (before any query params or fragments)
+                    let end_pos = hash.find('?').or_else(|| hash.find('#')).unwrap_or(hash.len());
+                    Some(hash[..end_pos].to_string())
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+    }
+
+    /// Fetch token metadata from IPFS with retry logic
+    async fn fetch_token_uri_data(&self, uri: &str) -> Option<TokenUriData> {
+        let ipfs_hash = Self::extract_ipfs_hash(uri)?;
+        let ipfs_url = format!("{}{}", self.config.ipfs.gateway_url, ipfs_hash);
+        
+        debug!("Fetching token metadata from: {}", ipfs_url);
+        
+        for attempt in 1..=self.config.ipfs.max_retries {
+            match self.http_client.get(&ipfs_url).send().await {
+                Ok(response) => {
+                    if response.status().is_success() {
+                        match response.json::<TokenUriData>().await {
+                            Ok(uri_data) => {
+                                debug!("Successfully fetched token metadata for URI: {}", uri);
+                                return Some(uri_data);
+                            }
+                            Err(e) => {
+                                warn!("Failed to parse JSON from IPFS (attempt {}/{}): {}", attempt, self.config.ipfs.max_retries, e);
+                            }
+                        }
+                    } else {
+                        warn!("HTTP error from IPFS gateway (attempt {}/{}): {}", attempt, self.config.ipfs.max_retries, response.status());
+                    }
+                }
+                Err(e) => {
+                    warn!("Network error fetching from IPFS (attempt {}/{}): {}", attempt, self.config.ipfs.max_retries, e);
+                }
+            }
+            
+            // Sleep before retry (except on last attempt)
+            if attempt < self.config.ipfs.max_retries {
+                sleep(Duration::from_secs(self.config.ipfs.retry_delay_seconds)).await;
+            }
+        }
+        
+        error!("Failed to fetch token metadata after {} attempts for URI: {}", self.config.ipfs.max_retries, uri);
+        None
+    }
+
     /// Process events for mint detail data
     pub async fn process_event_for_mint_detail(&self, event: &SpinPetEvent) -> Result<()> {
         let mint_account = match event {
