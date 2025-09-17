@@ -39,9 +39,6 @@ borsh = "0.10"
 rocksdb = "0.22"
 serde_with = "3.0"
 rand = "0.8"
-# WebSocket with auto-reconnection
-ezsockets = "0.6"
-url = "2.5"
 
 [dev-dependencies]
 tempfile = "3.8"
