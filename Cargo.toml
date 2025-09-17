@@ -15,6 +15,7 @@ chrono = { version = "0.4", features = ["serde"] }
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 utoipa = { version = "5.0", features = ["axum_extras", "chrono"] }
 anyhow = "1.0"
+reqwest = { version = "0.11", features = ["json"] }
 
 # Solana related dependencies
 solana-client = "1.18"
