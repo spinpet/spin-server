@@ -367,6 +367,7 @@ impl SolanaEventListener {
         let should_stop = Arc::clone(should_stop);
         let client = Arc::clone(client);
         let processed_signatures = Arc::clone(processed_signatures);
+        let connection_state = Arc::clone(connection_state);
         
         // Share the write half between message handler and ping task
         let shared_writer = Arc::new(Mutex::new(write));
