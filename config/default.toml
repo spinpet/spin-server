@@ -18,8 +18,8 @@ program_id = "JBMmrp6jhksqnxDBskkmVvWHhJLaPBjgiMHEroJbUTBZ"
 # Event listener configuration
 enable_event_listener = true
 commitment = "processed"  # processed/confirmed/finalized
-reconnect_interval = 5  # Reconnect interval in seconds
-max_reconnect_attempts = 10
+reconnect_interval = 1  # Reconnect interval in seconds (快速重连)
+max_reconnect_attempts = 20
 # Event processing configuration
 event_buffer_size = 1000
 event_batch_size = 100
