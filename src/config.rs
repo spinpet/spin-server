@@ -52,6 +52,14 @@ pub struct DatabaseConfig {
     pub rocksdb_path: String,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct IpfsConfig {
+    pub gateway_url: String,
+    pub request_timeout_seconds: u64,
+    pub max_retries: u32,
+    pub retry_delay_seconds: u64,
+}
+
 impl Config {
     pub fn new() -> anyhow::Result<Self> {
         let run_mode = env::var("RUST_ENV").unwrap_or_else(|_| "development".into());
