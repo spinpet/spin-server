@@ -224,8 +224,6 @@ impl SolanaEventListener {
                         info!("🔄 Starting reconnection attempt {} with {} second delay", reconnect_attempts, delay);
                         
                         // Attempt to reconnect  
-                        // Note: We don't pass reconnect_sender here to avoid infinite recursion
-                        // If this reconnection fails, we'll try again in the next iteration
                         // Create a new processed_signatures set for reconnection
                         let reconnect_processed_sigs = Arc::new(tokio::sync::RwLock::new(HashSet::new()));
                         match Self::connect_websocket_internal(
@@ -233,7 +231,7 @@ impl SolanaEventListener {
                             &client,
                             &event_parser,
                             &event_sender,
-                            &None, // Don't trigger more reconnect signals from here
+                            &None, // Don't pass reconnect_sender to avoid triggering immediate reconnect on failure
                             &should_stop,
                             &reconnect_processed_sigs,
                         ).await {
