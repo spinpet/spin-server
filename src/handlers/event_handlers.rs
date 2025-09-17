@@ -419,4 +419,67 @@ pub async fn get_db_stats(
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
+}
+
+/// Test IPFS functionality - Create a test token with URI
+#[utoipa::path(
+    post,
+    path = "/api/test-ipfs",
+    request_body = TestIpfsParams,
+    responses(
+        (status = 200, description = "Test token created and IPFS fetch triggered", body = ApiResponse<String>),
+        (status = 500, description = "Internal server error"),
+    ),
+    tags = ["test"]
+)]
+pub async fn test_ipfs_functionality(
+    State(state): State<Arc<AppState>>,
+    Json(params): Json<TestIpfsParams>,
+) -> Result<Json<ApiResponse<String>>, StatusCode> {
+    use crate::solana::events::*;
+    use chrono::Utc;
+
+    // Create a fake TokenCreated event with the provided URI
+    let fake_event = SpinPetEvent::TokenCreated(TokenCreatedEvent {
+        payer: params.payer.unwrap_or_else(|| "test_payer".to_string()),
+        mint_account: params.mint_account.clone(),
+        curve_account: "test_curve_account".to_string(),
+        pool_token_account: "test_pool_token_account".to_string(),
+        pool_sol_account: "test_pool_sol_account".to_string(),
+        fee_recipient: "test_fee_recipient".to_string(),
+        base_fee_recipient: "test_base_fee_recipient".to_string(),
+        params_account: "test_params_account".to_string(),
+        name: params.name.unwrap_or_else(|| "Test Token".to_string()),
+        symbol: params.symbol.unwrap_or_else(|| "TEST".to_string()),
+        uri: params.uri,
+        swap_fee: 100,
+        borrow_fee: 200,
+        fee_discount_flag: 0,
+        slot: 123456789,
+        timestamp: Utc::now(),
+        signature: "test_signature".to_string(),
+    });
+
+    // Process the event to trigger IPFS fetching
+    match state.event_storage.process_event_for_mint_detail(&fake_event).await {
+        Ok(_) => {
+            Ok(Json(ApiResponse::success(format!(
+                "Test token created with mint_account: {}. IPFS URI fetching triggered in background.", 
+                params.mint_account
+            ))))
+        }
+        Err(e) => {
+            tracing::error!("Failed to process test event: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct TestIpfsParams {
+    pub mint_account: String,
+    pub uri: String,
+    pub name: Option<String>,
+    pub symbol: Option<String>,
+    pub payer: Option<String>,
 } 
