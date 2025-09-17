@@ -1316,6 +1316,7 @@ mod tests {
             total_close_profit: 500,
             created_by: Some("test_user".to_string()),
             last_updated_at: Some(Utc::now()),
+            uri_data: None,
         };
         
         let key = storage.generate_mint_detail_key(&mint_detail.mint_account);
