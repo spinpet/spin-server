@@ -175,6 +175,22 @@ pub struct UserQueryResponse {
     pub mint_account: Option<String>,
 }
 
+/// Token URI metadata information from IPFS
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema, Default, Clone)]
+pub struct TokenUriData {
+    pub name: Option<String>,
+    pub symbol: Option<String>,
+    pub description: Option<String>,
+    pub image: Option<String>,
+    #[serde(rename = "showName")]
+    pub show_name: Option<bool>,
+    #[serde(rename = "createdOn")]
+    pub created_on: Option<String>,
+    pub twitter: Option<String>,
+    pub website: Option<String>,
+    pub telegram: Option<String>,
+}
+
 /// Mint detail information
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize, utoipa::ToSchema, Default)]
