@@ -673,6 +673,29 @@ impl EventStorage {
         self.db.put(key.as_bytes(), &value)?;
         
         debug!("💾 Mint detail updated successfully, key: {}", key);
+        
+        // For TokenCreated events, fetch URI data asynchronously if URI is present
+        if let SpinPetEvent::TokenCreated(token_event) = event {
+            if !token_event.uri.is_empty() {
+                let storage = Self {
+                    db: self.db.clone(),
+                    config: self.config.clone(),
+                    http_client: self.http_client.clone(),
+                };
+                let uri = token_event.uri.clone();
+                let mint_account = token_event.mint_account.clone();
+                
+                // Spawn async task to fetch URI data without blocking
+                tokio::spawn(async move {
+                    if let Some(uri_data) = storage.fetch_token_uri_data(&uri).await {
+                        if let Err(e) = storage.update_mint_uri_data(&mint_account, uri_data).await {
+                            error!("Failed to update URI data for mint {}: {}", mint_account, e);
+                        }
+                    }
+                });
+            }
+        }
+        
         Ok(())
     }
 
