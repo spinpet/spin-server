@@ -244,7 +244,7 @@ pub struct MintDetailsQueryResponse {
 
 impl EventStorage {
     /// Create a new event storage instance
-    pub fn new(config: &DatabaseConfig) -> Result<Self> {
+    pub fn new(config: &Config) -> Result<Self> {
         let mut opts = Options::default();
         opts.create_if_missing(true);
         opts.create_missing_column_families(true);
