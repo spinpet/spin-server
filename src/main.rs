@@ -38,16 +38,16 @@ async fn main() {
         .init();
 
     // Initialize event service
-    let event_service = match EventService::new(config.solana.clone(), config.database.clone()) {
+    let event_service = match EventService::new(&config) {
         Ok(service) => Arc::new(tokio::sync::RwLock::new(service)),
         Err(e) => {
             error!("❌ Failed to initialize event service: {}", e);
             warn!("⚠️ Continuing without event listener enabled");
-            // Create a disabled event service
-            let mut disabled_config = config.solana.clone();
-            disabled_config.enable_event_listener = false;
-            disabled_config.program_id = "11111111111111111111111111111111".to_string(); // Use a valid program ID
-            match EventService::new(disabled_config, config.database.clone()) {
+            // Create a disabled config
+            let mut disabled_config = config.clone();
+            disabled_config.solana.enable_event_listener = false;
+            disabled_config.solana.program_id = "11111111111111111111111111111111".to_string(); // Use a valid program ID
+            match EventService::new(&disabled_config) {
                 Ok(service) => Arc::new(tokio::sync::RwLock::new(service)),
                 Err(fallback_err) => {
                     error!("❌ Unable to create disabled event service: {}", fallback_err);
