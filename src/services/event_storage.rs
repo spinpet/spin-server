@@ -23,6 +23,8 @@ pub const EVENT_TYPE_MILESTONE_DISCOUNT: &str = "md";
 /// Event storage service
 pub struct EventStorage {
     db: Arc<DB>,
+    config: Config,
+    http_client: reqwest::Client,
 }
 
 /// Event query parameters
