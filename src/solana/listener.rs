@@ -12,6 +12,7 @@ use std::collections::HashSet;
 use async_trait::async_trait;
 use uuid::Uuid;
 use tokio::sync::Mutex;
+use rand;
 
 /// Event listener trait
 #[async_trait]
@@ -253,13 +254,15 @@ impl SolanaEventListener {
                             info!("🧹 Cleared {} processed signatures for fresh reconnection", old_count);
                         }
                         
-                        // Attempt to reconnect with proper reconnect_sender
+                        // Attempt to reconnect with proper reconnect_sender  
+                        // Create a temporary reconnect sender to avoid infinite loops
+                        let (temp_reconnect_sender, _temp_receiver) = mpsc::unbounded_channel();
                         match Self::connect_websocket_internal(
                             &config,
                             &client,
                             &event_parser,
                             &event_sender,
-                            &event_sender, // Use original event_sender to maintain reconnection capability
+                            &Some(temp_reconnect_sender), // Use temporary sender to maintain reconnection capability
                             &should_stop,
                             &processed_signatures,
                             &connection_state,
@@ -295,7 +298,9 @@ impl SolanaEventListener {
 
     /// Connect to Solana WebSocket
     async fn connect_websocket(&mut self) -> anyhow::Result<()> {
-        Self::connect_websocket_internal(
+        *self.connection_state.write().await = ConnectionState::Connecting;
+        
+        let result = Self::connect_websocket_internal(
             &self.config,
             &self.client,
             &self.event_parser,
@@ -303,7 +308,19 @@ impl SolanaEventListener {
             &self.reconnect_sender,
             &self.should_stop,
             &self.processed_signatures,
-        ).await
+            &self.connection_state,
+        ).await;
+        
+        match &result {
+            Ok(()) => {
+                *self.connection_state.write().await = ConnectionState::Connected;
+            }
+            Err(_) => {
+                *self.connection_state.write().await = ConnectionState::Disconnected;
+            }
+        }
+        
+        result
     }
     
     /// Internal WebSocket connection method that can be called statically
@@ -315,6 +332,7 @@ impl SolanaEventListener {
         reconnect_sender: &Option<mpsc::UnboundedSender<()>>,
         should_stop: &Arc<tokio::sync::RwLock<bool>>,
         processed_signatures: &Arc<tokio::sync::RwLock<HashSet<String>>>,
+        connection_state: &Arc<tokio::sync::RwLock<ConnectionState>>,
     ) -> anyhow::Result<()> {
         let ws_url = &config.ws_url;
         info!("🔌 Connecting to Solana WebSocket: {}", ws_url);
@@ -414,6 +432,9 @@ impl SolanaEventListener {
                     Ok(Message::Close(_)) => {
                         warn!("🎧 WebSocket connection closed, stopping ping task and triggering reconnect");
                         
+                        // Update connection state
+                        *connection_state.write().await = ConnectionState::Disconnected;
+                        
                         // Notify ping task to stop
                         let _ = ping_stop_sender.send(());
                         
@@ -447,6 +468,9 @@ impl SolanaEventListener {
                     }
                     Err(e) => {
                         error!("🎧 WebSocket error: {}, stopping ping task and triggering reconnect", e);
+                        
+                        // Update connection state
+                        *connection_state.write().await = ConnectionState::Disconnected;
                         
                         // Notify ping task to stop
                         let _ = ping_stop_sender.send(());
