@@ -104,6 +104,9 @@ pub fn create_router(config: &Config, app_state: Arc<AppState>) -> Router {
         // User order query routes
         .route("/api/user_orders", get(handlers::query_user_orders))
         
+        // Test IPFS functionality
+        .route("/api/test-ipfs", post(handlers::test_ipfs_functionality))
+        
         // OpenAPI specification
         .route("/api-docs/openapi.json", get(serve_openapi))
         
