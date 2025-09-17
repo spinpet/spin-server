@@ -222,6 +222,7 @@ pub struct MintDetailData {
     pub created_by: Option<String>,
     #[schema(value_type = Option<String>)]
     pub last_updated_at: Option<DateTime<Utc>>,
+    pub uri_data: Option<TokenUriData>,
 }
 
 /// Mint details query parameters
