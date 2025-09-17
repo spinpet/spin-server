@@ -8,6 +8,7 @@ pub struct Config {
     pub logging: LoggingConfig,
     pub solana: SolanaConfig,
     pub database: DatabaseConfig,
+    pub ipfs: IpfsConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
