@@ -587,6 +587,35 @@ impl EventStorage {
         None
     }
 
+    /// Update mint detail with URI data
+    async fn update_mint_uri_data(&self, mint_account: &str, uri_data: TokenUriData) -> Result<()> {
+        let key = self.generate_mint_detail_key(mint_account);
+        
+        // Get existing detail
+        let mut detail = match self.db.get(key.as_bytes())? {
+            Some(data) => serde_json::from_slice::<MintDetailData>(&data)
+                .unwrap_or_else(|_| MintDetailData {
+                    mint_account: mint_account.to_string(),
+                    ..Default::default()
+                }),
+            None => {
+                warn!("Mint detail not found for URI update: {}", mint_account);
+                return Ok(());
+            }
+        };
+        
+        // Update URI data
+        detail.uri_data = Some(uri_data);
+        detail.last_updated_at = Some(Utc::now());
+        
+        // Save back to database
+        let value = serde_json::to_vec(&detail)?;
+        self.db.put(key.as_bytes(), &value)?;
+        
+        debug!("✅ URI data updated successfully for mint: {}", mint_account);
+        Ok(())
+    }
+
     /// Process events for mint detail data
     pub async fn process_event_for_mint_detail(&self, event: &SpinPetEvent) -> Result<()> {
         let mint_account = match event {
