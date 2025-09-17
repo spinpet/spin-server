@@ -25,6 +25,7 @@ use crate::config::Config;
         handlers::query_orders,
         handlers::query_user_transactions,
         handlers::query_user_orders,
+        handlers::test_ipfs_functionality,
         handlers::query_mint_details,
     ),
     components(
