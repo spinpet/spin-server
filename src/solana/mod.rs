@@ -1,6 +1,5 @@
 pub mod events;
 pub mod listener;
-pub mod listener_ezsockets;
 pub mod listener_improved;
 pub mod client;
 
