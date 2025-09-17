@@ -42,6 +42,7 @@ use crate::config::Config;
             handlers::OrderQueryParams,
             handlers::UserQueryParams,
             handlers::MintDetailsQueryParams,
+            handlers::TestIpfsParams,
             crate::services::EventQueryResponse,
             crate::services::MintQueryResponse,
             crate::services::OrderQueryResponse,
