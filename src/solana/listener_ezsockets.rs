@@ -8,7 +8,8 @@ use std::sync::Arc;
 use std::collections::HashSet;
 use async_trait::async_trait;
 use uuid::Uuid;
-use ezsockets::{ClientConfig, Error, ClientCloseMode};
+use ezsockets::{ClientConfig, Error};
+use ezsockets::client::ClientCloseMode;
 use url::Url;
 
 /// Event listener trait
@@ -112,7 +113,7 @@ pub struct SolanaWebSocketClient {
     event_handler: Arc<dyn EventHandler>,
     event_sender: Option<mpsc::UnboundedSender<SpinPetEvent>>,
     processed_signatures: Arc<tokio::sync::RwLock<HashSet<String>>>,
-    socket: Option<ezsockets::Socket>,
+    socket: Option<ezsockets::Client<Self>>,
     reconnect_attempts: Arc<tokio::sync::RwLock<u32>>,
     is_connected: Arc<tokio::sync::RwLock<bool>>,
 }
@@ -146,8 +147,8 @@ impl SolanaWebSocketClient {
         
         info!("🔌 Connecting to Solana WebSocket with ezsockets: {}", self.config.ws_url);
         
-        let (socket, future) = ezsockets::connect(|_| self.clone(), config).await;
-        self.socket = Some(socket);
+        let (client, future) = ezsockets::connect(|_| self.clone(), config).await;
+        self.socket = Some(client);
         
         // Spawn the client future
         tokio::spawn(async move {
@@ -175,7 +176,7 @@ impl SolanaWebSocketClient {
                 ]
             });
             
-            socket.text(subscribe_request.to_string());
+            socket.send_text(subscribe_request.to_string()).await;
             info!("📡 Subscribed to program logs: {}", self.config.program_id);
         }
         
@@ -509,7 +510,7 @@ impl EventListener for SolanaEventListener {
         
         if let Some(client) = &mut self.client {
             if let Some(socket) = &client.socket {
-                socket.close(None);
+                socket.close();
             }
         }
         
