@@ -383,7 +383,7 @@ impl SolanaEventListener {
                                     info!("✅ Reconnect signal sent successfully");
                                 }
                             } else {
-                                error!("❌ Reconnect sender is None, cannot trigger reconnection");
+                                warn!("⚠️ Reconnect sender is None (likely during reconnection), connection will be retried by reconnection handler");
                             }
                         } else {
                             info!("Stop signal is active, skipping reconnection");
