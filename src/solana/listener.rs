@@ -374,14 +374,20 @@ impl SolanaEventListener {
         // Create a channel to notify ping task when connection is closed
         let (ping_stop_sender, mut ping_stop_receiver) = mpsc::unbounded_channel::<()>();
         
-        // Start ping task to keep connection alive
+        // Start ping task to keep connection alive with health monitoring
         let ping_should_stop = Arc::clone(&should_stop);
         let ping_writer = Arc::clone(&shared_writer);
         let ping_config = config.clone();
+        let ping_reconnect_sender = reconnect_sender.clone();
+        let ping_connection_state = Arc::clone(&connection_state);
+        
         tokio::spawn(async move {
             info!("💓 Starting WebSocket ping task (every {} seconds)", ping_config.ping_interval_seconds);
             let mut ping_interval = tokio::time::interval(Duration::from_secs(ping_config.ping_interval_seconds));
             ping_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            
+            let mut consecutive_ping_failures = 0u32;
+            const MAX_PING_FAILURES: u32 = 3;
             
             loop {
                 tokio::select! {
@@ -393,9 +399,32 @@ impl SolanaEventListener {
                         
                         debug!("💓 Sending ping to keep WebSocket alive");
                         let mut writer = ping_writer.lock().await;
-                        if let Err(e) = writer.send(Message::Ping(vec![])).await {
-                            warn!("💓 Failed to send ping: {}, stopping ping task", e);
-                            break;
+                        match writer.send(Message::Ping(vec![])).await {
+                            Ok(()) => {
+                                consecutive_ping_failures = 0;
+                                debug!("💓 Ping sent successfully");
+                            }
+                            Err(e) => {
+                                consecutive_ping_failures += 1;
+                                warn!("💓 Failed to send ping ({}): {}", consecutive_ping_failures, e);
+                                
+                                if consecutive_ping_failures >= MAX_PING_FAILURES {
+                                    error!("💓 Too many consecutive ping failures ({}), triggering reconnection", consecutive_ping_failures);
+                                    
+                                    // Update connection state
+                                    *ping_connection_state.write().await = ConnectionState::Disconnected;
+                                    
+                                    // Trigger reconnection
+                                    if let Some(sender) = &ping_reconnect_sender {
+                                        if let Err(e) = sender.send(()) {
+                                            error!("💓 Failed to send reconnect signal from ping task: {}", e);
+                                        } else {
+                                            info!("💓 Reconnect signal sent from ping task");
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
                         }
                     }
                     _ = ping_stop_receiver.recv() => {
