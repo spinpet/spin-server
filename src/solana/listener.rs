@@ -322,6 +322,9 @@ impl SolanaEventListener {
         // Share the write half between message handler and ping task
         let shared_writer = Arc::new(Mutex::new(write));
         
+        // Create a channel to notify ping task when connection is closed
+        let (ping_stop_sender, mut ping_stop_receiver) = mpsc::unbounded_channel::<()>();
+        
         // Start ping task to keep connection alive
         let ping_should_stop = Arc::clone(&should_stop);
         let ping_writer = Arc::clone(&shared_writer);
@@ -332,18 +335,24 @@ impl SolanaEventListener {
             ping_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
             
             loop {
-                ping_interval.tick().await;
-                
-                if *ping_should_stop.read().await {
-                    info!("Ping task received stop signal");
-                    break;
-                }
-                
-                debug!("💓 Sending ping to keep WebSocket alive");
-                let mut writer = ping_writer.lock().await;
-                if let Err(e) = writer.send(Message::Ping(vec![])).await {
-                    warn!("Failed to send ping: {}", e);
-                    break;
+                tokio::select! {
+                    _ = ping_interval.tick() => {
+                        if *ping_should_stop.read().await {
+                            info!("💓 Ping task received stop signal");
+                            break;
+                        }
+                        
+                        debug!("💓 Sending ping to keep WebSocket alive");
+                        let mut writer = ping_writer.lock().await;
+                        if let Err(e) = writer.send(Message::Ping(vec![])).await {
+                            warn!("💓 Failed to send ping: {}, stopping ping task", e);
+                            break;
+                        }
+                    }
+                    _ = ping_stop_receiver.recv() => {
+                        info!("💓 Ping task received connection close notification");
+                        break;
+                    }
                 }
             }
             info!("💓 Ping task stopped");
