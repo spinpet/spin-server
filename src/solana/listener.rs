@@ -381,7 +381,11 @@ impl SolanaEventListener {
                         }
                     }
                     Ok(Message::Close(_)) => {
-                        warn!("WebSocket connection closed, triggering reconnect");
+                        warn!("🎧 WebSocket connection closed, stopping ping task and triggering reconnect");
+                        
+                        // Notify ping task to stop
+                        let _ = ping_stop_sender.send(());
+                        
                         // Connection closed - trigger reconnection unless we're stopping
                         if !*should_stop.read().await {
                             if let Some(sender) = &reconnect_sender {
@@ -411,7 +415,11 @@ impl SolanaEventListener {
                         debug!("🏓 Received Pong from server - connection is alive");
                     }
                     Err(e) => {
-                        error!("WebSocket error: {}, triggering reconnect", e);
+                        error!("🎧 WebSocket error: {}, stopping ping task and triggering reconnect", e);
+                        
+                        // Notify ping task to stop
+                        let _ = ping_stop_sender.send(());
+                        
                         // WebSocket error - trigger reconnection unless we're stopping
                         if !*should_stop.read().await {
                             if let Some(sender) = &reconnect_sender {
@@ -434,6 +442,9 @@ impl SolanaEventListener {
                     }
                 }
             }
+            
+            // When message listener ends, always notify ping task to stop
+            let _ = ping_stop_sender.send(());
             warn!("🎧 WebSocket message listener ended");
         });
 
