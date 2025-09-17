@@ -668,7 +668,7 @@ impl EventStorage {
                 detail.fee_discount_flag = Some(e.fee_discount_flag);
                 detail.last_updated_at = Some(e.timestamp);
             },
-            SpinPetEvent::BuySell(e) => {
+            SpinPetEvent::BuySell(e) => { 
                 detail.latest_price = Some(e.latest_price);
                 detail.latest_trade_time = Some(e.timestamp.timestamp());
                 detail.total_sol_amount = detail.total_sol_amount.saturating_add(e.sol_amount);
