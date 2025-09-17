@@ -117,9 +117,18 @@ pub struct SolanaEventListener {
     reconnect_sender: Option<mpsc::UnboundedSender<()>>,
     reconnect_receiver: Option<mpsc::UnboundedReceiver<()>>,
     is_running: bool,
-    reconnect_attempts: u32,
+    reconnect_attempts: Arc<tokio::sync::RwLock<u32>>,
     should_stop: Arc<tokio::sync::RwLock<bool>>,
     processed_signatures: Arc<tokio::sync::RwLock<HashSet<String>>>,
+    connection_state: Arc<tokio::sync::RwLock<ConnectionState>>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum ConnectionState {
+    Disconnected,
+    Connecting,
+    Connected,
+    Reconnecting,
 }
 
 impl SolanaEventListener {
@@ -143,9 +152,10 @@ impl SolanaEventListener {
             reconnect_sender: Some(reconnect_sender),
             reconnect_receiver: Some(reconnect_receiver),
             is_running: false,
-            reconnect_attempts: 0,
+            reconnect_attempts: Arc::new(tokio::sync::RwLock::new(0)),
             should_stop: Arc::new(tokio::sync::RwLock::new(false)),
             processed_signatures: Arc::new(tokio::sync::RwLock::new(HashSet::new())),
+            connection_state: Arc::new(tokio::sync::RwLock::new(ConnectionState::Disconnected)),
         })
     }
 
@@ -178,10 +188,12 @@ impl SolanaEventListener {
             let should_stop = Arc::clone(&self.should_stop);
             let event_sender = self.event_sender.clone();
             let event_parser = self.event_parser.clone();
+            let connection_state = Arc::clone(&self.connection_state);
+            let reconnect_attempts = Arc::clone(&self.reconnect_attempts);
+            let processed_signatures = Arc::clone(&self.processed_signatures);
             
             tokio::spawn(async move {
                 info!("🔄 Reconnection handler started and ready to receive signals");
-                let mut reconnect_attempts = 0u32;
                 let mut last_reconnect_time = std::time::Instant::now();
                 
                 while let Some(_) = receiver.recv().await {
@@ -195,22 +207,33 @@ impl SolanaEventListener {
                         break;
                     }
                     
+                    // Set connection state to reconnecting
+                    *connection_state.write().await = ConnectionState::Reconnecting;
+                    
                     info!("🔄 Reconnection signal received, starting reconnection process");
                     
                     // Exponential backoff reconnection loop
                     loop {
-                        reconnect_attempts += 1;
+                        let mut attempts = reconnect_attempts.write().await;
+                        *attempts += 1;
+                        let current_attempts = *attempts;
+                        drop(attempts);
                         
-                        if reconnect_attempts > config.max_reconnect_attempts {
-                            error!("Max reconnection attempts ({}) exceeded. Giving up.", config.max_reconnect_attempts);
+                        if current_attempts > config.max_reconnect_attempts {
+                            error!("Max reconnection attempts ({}) exceeded. Resetting for next signal.", config.max_reconnect_attempts);
+                            *reconnect_attempts.write().await = 0;
+                            *connection_state.write().await = ConnectionState::Disconnected;
                             break;
                         }
                         
-                        // Use fixed short delay for fast reconnection instead of exponential backoff
-                        let delay = config.reconnect_interval;
+                        // Use exponential backoff with jitter to prevent thundering herd
+                        let base_delay = config.reconnect_interval;
+                        let exponential_delay = std::cmp::min(base_delay * 2_u64.pow((current_attempts - 1).min(5)), 60); // Max 60 seconds
+                        let jitter = (rand::random::<f64>() * 2.0) as u64; // 0-2 seconds jitter
+                        let delay = exponential_delay + jitter;
                         
                         warn!("🔄 Reconnection attempt {} of {}. Waiting {} seconds before retry...", 
-                             reconnect_attempts, config.max_reconnect_attempts, delay);
+                             current_attempts, config.max_reconnect_attempts, delay);
                              
                         sleep(Duration::from_secs(delay)).await;
                         
@@ -220,32 +243,41 @@ impl SolanaEventListener {
                             return;
                         }
                         
-                        info!("🔄 Starting reconnection attempt {} with {} second delay", reconnect_attempts, delay);
+                        info!("🔄 Starting reconnection attempt {} with {} second delay", current_attempts, delay);
                         
-                        // Attempt to reconnect  
-                        // Create a new processed_signatures set for reconnection
-                        let reconnect_processed_sigs = Arc::new(tokio::sync::RwLock::new(HashSet::new()));
+                        // Clear processed signatures to avoid missing events during reconnection
+                        {
+                            let mut sigs = processed_signatures.write().await;
+                            let old_count = sigs.len();
+                            sigs.clear();
+                            info!("🧹 Cleared {} processed signatures for fresh reconnection", old_count);
+                        }
+                        
+                        // Attempt to reconnect with proper reconnect_sender
                         match Self::connect_websocket_internal(
                             &config,
                             &client,
                             &event_parser,
                             &event_sender,
-                            &None, // Don't pass reconnect_sender to avoid triggering immediate reconnect on failure
+                            &event_sender, // Use original event_sender to maintain reconnection capability
                             &should_stop,
-                            &reconnect_processed_sigs,
+                            &processed_signatures,
+                            &connection_state,
                         ).await {
                             Ok(()) => {
-                                info!("✅ Reconnection successful after {} attempts", reconnect_attempts);
-                                reconnect_attempts = 0; // Reset counter on successful reconnection
+                                info!("✅ Reconnection successful after {} attempts", current_attempts);
+                                *reconnect_attempts.write().await = 0; // Reset counter on successful reconnection
+                                *connection_state.write().await = ConnectionState::Connected;
                                 break; // Exit the reconnection loop, wait for next signal
                             }
                             Err(e) => {
-                                error!("❌ Reconnection attempt {}/{} failed: {}", reconnect_attempts, config.max_reconnect_attempts, e);
+                                error!("❌ Reconnection attempt {}/{} failed: {}", current_attempts, config.max_reconnect_attempts, e);
                                 
                                 // If we've exhausted all attempts, wait for a new signal
-                                if reconnect_attempts >= config.max_reconnect_attempts {
+                                if current_attempts >= config.max_reconnect_attempts {
                                     error!("❌ All reconnection attempts exhausted. Waiting for new connection signal.");
-                                    reconnect_attempts = 0; // Reset for next signal
+                                    *reconnect_attempts.write().await = 0; // Reset for next signal
+                                    *connection_state.write().await = ConnectionState::Disconnected;
                                     break;
                                 }
                                 // Continue the loop to try again
