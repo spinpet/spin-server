@@ -385,6 +385,7 @@ impl SolanaEventListener {
                         &event_broadcaster_clone,
                         &client_clone,
                         &processed_signatures_clone,
+                        &self.config,
                     ).await {
                         error!("Failed to process WebSocket message: {}", e);
                     }
