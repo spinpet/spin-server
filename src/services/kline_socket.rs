@@ -534,8 +534,12 @@ impl KlineSocketService {
             info!("📋 Room {} has {} subscribers: {:?}", room_name, subscribers.len(), subscribers);
         }
         
-        // 尝试发送到具体的 socket 而不是房间
-        let result = self.socketio.to(room_name.clone()).emit("kline_data", &update_message).await;
+        // 发送到 /kline 命名空间的房间
+        let result = self.socketio.of("/kline")
+            .ok_or_else(|| anyhow::anyhow!("Namespace /kline not found"))?
+            .to(room_name.clone())
+            .emit("kline_data", &update_message)
+            .await;
         
         match result {
             Ok(_) => {
