@@ -44,23 +44,26 @@ testTimestamps.forEach((timestamp, i) => {
     console.log('');
 });
 
-// Test edge cases around minute and 5-minute boundaries
+// Test edge cases around 30-second and 5-minute boundaries
 console.log('🔍 Testing boundary cases...\n');
 
-// Test around minute boundary
-const minuteBoundary = 1726627800; // 2024-09-18 03:50:00 exactly
-const minuteTests = [
-    minuteBoundary - 5,  // 03:49:55
-    minuteBoundary,      // 03:50:00
-    minuteBoundary + 30, // 03:50:30
-    minuteBoundary + 59, // 03:50:59
-    minuteBoundary + 60, // 03:51:00
+// Test around 30-second boundary
+const thirtySecBoundary = 1726627800; // 2024-09-18 03:50:00 exactly (divisible by 30)
+const thirtySecTests = [
+    thirtySecBoundary - 5,  // 03:49:55
+    thirtySecBoundary,      // 03:50:00
+    thirtySecBoundary + 15, // 03:50:15
+    thirtySecBoundary + 29, // 03:50:29
+    thirtySecBoundary + 30, // 03:50:30
+    thirtySecBoundary + 45, // 03:50:45
+    thirtySecBoundary + 59, // 03:50:59
+    thirtySecBoundary + 60, // 03:51:00
 ];
 
-console.log('Minute boundary tests:');
-minuteTests.forEach(ts => {
-    const m1Aligned = calculateTimeBucket(ts, 'm1');
-    console.log(`${ts} (${formatTimestamp(ts)}) -> m1: ${m1Aligned} (${formatTimestamp(m1Aligned)})`);
+console.log('30-second boundary tests:');
+thirtySecTests.forEach(ts => {
+    const s30Aligned = calculateTimeBucket(ts, 's30');
+    console.log(`${ts} (${formatTimestamp(ts)}) -> s30: ${s30Aligned} (${formatTimestamp(s30Aligned)})`);
 });
 
 console.log('\n5-minute boundary tests:');
