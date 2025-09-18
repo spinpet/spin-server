@@ -273,26 +273,24 @@ impl KlineSocketService {
     pub fn setup_socket_handlers(&self) {
         let subscriptions = Arc::clone(&self.subscriptions);
         let event_storage = Arc::clone(&self.event_storage);
-        let _config = self.config.clone();
         
         // 设置默认命名空间（避免default namespace not found错误）
         self.socketio.ns("/", |_socket: SocketRef| {
-            tokio::spawn(async move {
-                // 默认命名空间不做任何处理，只是为了避免错误
-            });
+            // 默认命名空间不做任何处理，只是为了避免错误
         });
         
-        // 连接建立事件 - K线命名空间
+        // K线命名空间 - 合并所有事件处理器到一个命名空间
         self.socketio.ns("/kline", {
             let subscriptions = subscriptions.clone();
+            let event_storage = event_storage.clone();
+            
             move |socket: SocketRef| {
-                let subscriptions = subscriptions.clone();
+                info!("🔌 New client connected to /kline: {}", socket.id);
                 
-                tokio::spawn(async move {
-                    info!("🔌 New client connected: {}", socket.id);
-                    
-                    // 注册客户端连接
-                    {
+                // 注册客户端连接并发送欢迎消息
+                {
+                    let subscriptions = subscriptions.clone();
+                    tokio::spawn(async move {
                         let mut manager = subscriptions.write().await;
                         manager.connections.insert(socket.id.to_string(), ClientConnection {
                             socket_id: socket.id.to_string(),
@@ -300,33 +298,22 @@ impl KlineSocketService {
                             last_activity: Instant::now(),
                             connection_time: Instant::now(),
                             subscription_count: 0,
-                            user_agent: None, // 可以从请求头获取
+                            user_agent: None,
                         });
-                    }
-                    
-                    // 发送连接成功消息
-                    let welcome_msg = serde_json::json!({
-                        "client_id": socket.id.to_string(),
-                        "server_time": Utc::now().timestamp(),
-                        "supported_symbols": [], // 可以从数据库查询支持的mint列表
-                        "supported_intervals": ["s1", "s30", "m5"]
                     });
-                    
-                    if let Err(e) = socket.emit("connection_success", &welcome_msg) {
-                        warn!("Failed to send welcome message: {}", e);
-                    }
+                }
+                
+                // 发送连接成功消息
+                let welcome_msg = serde_json::json!({
+                    "client_id": socket.id.to_string(),
+                    "server_time": Utc::now().timestamp(),
+                    "supported_symbols": [], 
+                    "supported_intervals": ["s1", "s30", "m5"]
                 });
-            }
-        });
-        
-        // K线数据订阅事件
-        self.socketio.ns("/kline", {
-            let subscriptions = subscriptions.clone();
-            let event_storage = event_storage.clone();
-            
-            move |socket: SocketRef| {
-                let subscriptions = subscriptions.clone();
-                let event_storage = event_storage.clone();
+                
+                if let Err(e) = socket.emit("connection_success", &welcome_msg) {
+                    warn!("Failed to send welcome message: {}", e);
+                }
                 
                 // 订阅事件处理器
                 socket.on("subscribe", {
@@ -453,22 +440,22 @@ impl KlineSocketService {
                         });
                     }
                 });
-            }
-        });
-        
-        // 连接断开事件
-        self.socketio.ns("/kline", {
-            let subscriptions = subscriptions.clone();
-            
-            move |socket: SocketRef| {
-                let subscriptions = subscriptions.clone();
                 
-                tokio::spawn(async move {
-                    info!("🔌 Client disconnected: {}", socket.id);
+                // 连接断开事件处理器
+                socket.on_disconnect({
+                    let subscriptions = subscriptions.clone();
                     
-                    // 清理客户端连接
-                    let mut manager = subscriptions.write().await;
-                    manager.remove_client(&socket.id.to_string());
+                    move |socket: SocketRef| {
+                        let subscriptions = subscriptions.clone();
+                        
+                        tokio::spawn(async move {
+                            info!("🔌 Client disconnected: {}", socket.id);
+                            
+                            // 清理客户端连接
+                            let mut manager = subscriptions.write().await;
+                            manager.remove_client(&socket.id.to_string());
+                        });
+                    }
                 });
             }
         });
