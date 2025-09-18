@@ -478,7 +478,7 @@ impl KlineSocketService {
             timestamp: Utc::now().timestamp_millis() as u64,
         };
         
-        if let Err(e) = self.socketio.to(room_name.clone()).emit("kline_data", &update_message) {
+        if let Err(e) = self.socketio.to(room_name.clone()).emit("kline_data", &update_message).await {
             warn!("Failed to broadcast to room {}: {}", room_name, e);
         } else {
             debug!("📡 Broadcasted kline update to room {}", room_name);
