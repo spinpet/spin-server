@@ -423,11 +423,20 @@ impl EventStorage {
     }
 
     /// Calculate time bucket for different intervals
+    /// Returns the aligned timestamp for the time bucket
     fn calculate_time_bucket(&self, timestamp: u64, interval: &str) -> u64 {
         match interval {
-            KLINE_INTERVAL_1S => timestamp, // 1-second intervals
-            KLINE_INTERVAL_1M => timestamp / 60, // 1-minute intervals
-            KLINE_INTERVAL_5M => timestamp / 300, // 5-minute intervals (300 seconds)
+            KLINE_INTERVAL_1S => timestamp, // 1-second intervals - no alignment needed
+            KLINE_INTERVAL_1M => {
+                // 1-minute intervals - align to minute boundary
+                // Floor timestamp to minute boundary, then return the aligned timestamp
+                (timestamp / 60) * 60
+            },
+            KLINE_INTERVAL_5M => {
+                // 5-minute intervals - align to 5-minute boundary
+                // Floor timestamp to 5-minute boundary, then return the aligned timestamp
+                (timestamp / 300) * 300
+            },
             _ => timestamp, // default to 1-second
         }
     }
