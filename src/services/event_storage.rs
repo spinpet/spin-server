@@ -1542,8 +1542,8 @@ impl EventStorage {
         let order_by = query.order_by.unwrap_or_else(|| "time_desc".to_string());
         
         // Validate interval
-        if !matches!(interval.as_str(), "s1" | "m1" | "m5") {
-            return Err(anyhow::anyhow!("Invalid interval: {}, must be one of: s1, m1, m5", interval));
+        if !matches!(interval.as_str(), "s1" | "s30" | "m5") {
+            return Err(anyhow::anyhow!("Invalid interval: {}, must be one of: s1, s30, m5", interval));
         }
         
         debug!("🔍 Querying kline data, mint: {}, interval: {}, page: {}, limit: {}, order: {}", 
