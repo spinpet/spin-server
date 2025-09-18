@@ -552,11 +552,13 @@ impl KlineSocketService {
                     info!("🔍 Attempting direct send to {} subscribers", subscribers.len());
                     
                     for socket_id in &subscribers {
-                        // 尝试直接发送给特定socket
-                        if let Err(e) = self.socketio.to(socket_id.clone()).emit("direct_kline_test", &update_message).await {
-                            warn!("❌ Failed to send direct test to socket {}: {}", socket_id, e);
-                        } else {
-                            info!("✅ Direct test sent to socket {}", socket_id);
+                        // 尝试直接发送给特定socket (在 /kline 命名空间中)
+                        if let Some(ns) = self.socketio.of("/kline") {
+                            if let Err(e) = ns.to(socket_id.clone()).emit("direct_kline_test", &update_message).await {
+                                warn!("❌ Failed to send direct test to socket {}: {}", socket_id, e);
+                            } else {
+                                info!("✅ Direct test sent to socket {}", socket_id);
+                            }
                         }
                     }
                 }
