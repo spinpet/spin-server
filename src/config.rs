@@ -46,6 +46,9 @@ pub struct SolanaConfig {
     pub event_batch_size: usize,
     #[allow(dead_code)]
     pub ping_interval_seconds: u64,
+    /// Whether to process failed transactions for development/testing (default: false)
+    #[serde(default)]
+    pub process_failed_transactions: bool,
 }
 
 #[derive(Debug, Deserialize, Clone)]
