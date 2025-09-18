@@ -50,7 +50,7 @@ function createClient(clientId) {
     return new Promise((resolve, reject) => {
         console.log(`🔌 创建客户端 ${clientId}...`);
         
-        const socket = io(SERVER_URL, {
+        const socket = io(`${SERVER_URL}/kline`, {
             transports: ['websocket', 'polling'],
             timeout: 10000,
             reconnection: false, // 关闭自动重连以避免测试混乱
