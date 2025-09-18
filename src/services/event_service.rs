@@ -280,11 +280,50 @@ mod tests {
         // This is just a test stub, in real code we need to provide event_storage
         // Create a mock storage for testing
         use tempfile::TempDir;
-        use crate::config::DatabaseConfig;
+        use crate::config::{Config, DatabaseConfig, SolanaConfig, ServerConfig, CorsConfig, LoggingConfig, IpfsConfig, KlineServiceConfig};
         
         let temp_dir = TempDir::new().unwrap();
-        let config = DatabaseConfig {
-            rocksdb_path: temp_dir.path().to_str().unwrap().to_string(),
+        let config = Config {
+            server: ServerConfig {
+                host: "localhost".to_string(),
+                port: 8080,
+            },
+            cors: CorsConfig {
+                enabled: true,
+                allow_origins: vec!["*".to_string()],
+            },
+            logging: LoggingConfig {
+                level: "debug".to_string(),
+            },
+            solana: SolanaConfig {
+                rpc_url: "http://localhost:8899".to_string(),
+                ws_url: "ws://localhost:8900".to_string(),
+                program_id: "JBMmrp6jhksqnxDBskkmVvWHhJLaPBjgiMHEroJbUTBZ".to_string(),
+                enable_event_listener: false,
+                commitment: "processed".to_string(),
+                reconnect_interval: 1,
+                max_reconnect_attempts: 20,
+                event_buffer_size: 1000,
+                event_batch_size: 100,
+                ping_interval_seconds: 60,
+            },
+            database: DatabaseConfig {
+                rocksdb_path: temp_dir.path().to_str().unwrap().to_string(),
+            },
+            ipfs: IpfsConfig {
+                gateway_url: "https://gateway.pinata.cloud/ipfs/".to_string(),
+                request_timeout_seconds: 30,
+                max_retries: 3,
+                retry_delay_seconds: 5,
+            },
+            kline: KlineServiceConfig {
+                enable_kline_service: false,
+                connection_timeout_secs: 60,
+                max_subscriptions_per_client: 100,
+                history_data_limit: 100,
+                ping_interval_secs: 25,
+                ping_timeout_secs: 60,
+            },
         };
         let event_storage = Arc::new(EventStorage::new(&config).unwrap());
         
