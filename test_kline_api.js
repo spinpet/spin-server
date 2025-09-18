@@ -81,7 +81,7 @@ async function testKlineAPI() {
         // Step 3: Test different intervals
         console.log('📈 Step 3: Test different kline intervals...');
         
-        const intervals = ['s1', 'm1', 'm5'];
+        const intervals = ['s1', 's30', 'm5'];
         for (const interval of intervals) {
             console.log(`\n🔍 Testing interval: ${interval}`);
             const result = await makeRequest(`${baseUrl}/api/kline?mint=test_mint_12345&interval=${interval}&limit=10&order_by=time_desc`);
