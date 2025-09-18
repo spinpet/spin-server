@@ -54,6 +54,8 @@ use crate::config::Config;
             crate::services::UserOrderQueryResponse,
             crate::services::MintDetailsQueryResponse,
             crate::services::MintDetailData,
+            KlineData,
+            KlineQueryResponse,
             crate::solana::SpinPetEvent,
             crate::solana::TokenCreatedEvent,
             crate::solana::BuySellEvent,
