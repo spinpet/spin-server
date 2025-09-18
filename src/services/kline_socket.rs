@@ -357,7 +357,16 @@ impl KlineSocketService {
                             
                             // 加入对应的房间
                             let room_name = format!("kline:{}:{}", data.symbol, data.interval);
-                            socket.join(room_name);
+                            info!("🏠 Client {} joining room: {}", socket.id, room_name);
+                            socket.join(room_name.clone());
+                            
+                            // 检查订阅者状态
+                            {
+                                let manager = subscriptions.read().await;
+                                let subscribers = manager.get_subscribers(&data.symbol, &data.interval);
+                                info!("📈 Current subscribers for {}:{}: {:?}", data.symbol, data.interval, subscribers);
+                                info!("📋 Total active connections: {}", manager.connections.len());
+                            }
                             
                             // 推送历史数据
                             if let Ok(history) = get_kline_history(&event_storage, &data.symbol, &data.interval, 100).await {
