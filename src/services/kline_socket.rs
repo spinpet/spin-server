@@ -360,7 +360,7 @@ impl KlineSocketService {
                     }
                     
                     // 确认订阅成功
-                    let _ = socket.emit("subscription_confirmed", serde_json::json!({
+                    let _ = socket.emit("subscription_confirmed", &serde_json::json!({
                         "symbol": data.symbol,
                         "interval": data.interval,
                         "subscription_id": data.subscription_id,
