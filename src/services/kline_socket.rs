@@ -404,7 +404,7 @@ impl KlineSocketService {
         });
         
         // 获取历史数据事件
-        self.socketio.ns("/", {
+        self.socketio.ns("/kline", {
             let event_storage = event_storage.clone();
             let subscriptions = subscriptions.clone();
             
