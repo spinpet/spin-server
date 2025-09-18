@@ -104,6 +104,10 @@ impl EventHandler for StatsEventHandler {
 
         Ok(())
     }
+    
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 /// Event service manager
