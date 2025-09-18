@@ -350,9 +350,7 @@ impl KlineSocketService {
                     
                     // 加入对应的房间
                     let room_name = format!("kline:{}:{}", data.symbol, data.interval);
-                    if let Err(e) = socket.join(room_name) {
-                        warn!("Failed to join room: {}", e);
-                    }
+                    socket.join(room_name);
                     
                     // 推送历史数据
                     if let Ok(history) = get_kline_history(&event_storage, &data.symbol, &data.interval, 100).await {
