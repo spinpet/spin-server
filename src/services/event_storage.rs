@@ -1665,6 +1665,14 @@ mod tests {
                 max_retries: 3,
                 retry_delay_seconds: 5,
             },
+            kline: crate::config::KlineServiceConfig {
+                enable_kline_service: false,
+                connection_timeout_secs: 60,
+                max_subscriptions_per_client: 100,
+                history_data_limit: 100,
+                ping_interval_secs: 25,
+                ping_timeout_secs: 60,
+            },
         };
         
         let storage = EventStorage::new(&config).unwrap();
