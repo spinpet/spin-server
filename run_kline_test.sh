@@ -54,7 +54,7 @@ echo "✅ 服务器启动成功"
 # 等待用户准备
 echo ""
 echo "🎯 服务器已启动，现在可以运行测试："
-echo "   WebSocket 端点: ws://localhost:5051/socket.io"
+echo "   WebSocket 端点: ws://localhost:5051/kline"
 echo "   API 状态: http://localhost:5051/api/kline/status"
 echo "   API 文档: http://localhost:5051/swagger-ui"
 echo ""
