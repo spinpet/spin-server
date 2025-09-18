@@ -156,8 +156,26 @@ async fn main() {
         event_storage,
     });
 
-    // Create router
-    let app = create_router(&config, app_state);
+    // Create router with optional SocketIO layer
+    let app = if let Some(layer) = socketio_layer {
+        create_router(&config, app_state).layer(layer)
+    } else {
+        create_router(&config, app_state)
+    };
+    
+    // Start K-line service background tasks
+    if let Some(kline_service) = &kline_socket_service {
+        let subscription_manager = Arc::clone(&kline_service.subscriptions);
+        let kline_config = KlineConfig::from_config(&config.kline);
+        
+        // Start connection cleanup task
+        let _cleanup_handle = start_connection_cleanup_task(Arc::clone(&subscription_manager), kline_config.clone()).await;
+        
+        // Start performance monitoring task
+        let _monitoring_handle = start_performance_monitoring_task(Arc::clone(&subscription_manager)).await;
+        
+        info!("✅ K-line service background tasks started");
+    }
 
     // Create listener
     let addr = format!("{}:{}", config.server.host, config.server.port);
