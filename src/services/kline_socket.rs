@@ -8,7 +8,7 @@ use tokio::sync::RwLock;
 use serde::{Deserialize, Serialize};
 use socketioxide::SocketIo;
 use socketioxide::extract::{Data, SocketRef};
-use tracing::{info, error, warn, debug};
+use tracing::{info, warn, debug};
 use chrono::{DateTime, Utc};
 use anyhow::Result;
 use utoipa::ToSchema;
