@@ -326,9 +326,9 @@ impl KlineSocketService {
                     
                     // 验证订阅请求
                     if let Err(e) = validate_subscribe_request(&data) {
-                        let _ = socket.emit("error", serde_json::json!({
+                        let _ = socket.emit("error", &serde_json::json!({
                             "code": 1001,
-                            "message": e
+                            "message": e.to_string()
                         }));
                         return;
                     }
