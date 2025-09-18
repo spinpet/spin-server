@@ -7,12 +7,13 @@ use tracing::info;
 use std::sync::Arc;
 
 use crate::models::*;
-use crate::services::{EventService, EventStorage};
+use crate::services::{EventService, EventStorage, KlineSocketService};
 
 /// Application state
 pub struct AppState {
     pub event_service: Arc<tokio::sync::RwLock<EventService>>,
     pub event_storage: Arc<EventStorage>,
+    pub kline_service: Option<Arc<KlineSocketService>>,
 }
 
 /// Get current time
