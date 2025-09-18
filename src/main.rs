@@ -101,7 +101,7 @@ async fn main() {
         None => {
             // 创建标准的事件服务 - 但重用现有的事件存储
             let stats_handler = Arc::new(StatsEventHandler::new(Arc::clone(&event_storage)));
-            match EventService::with_handler(&config, Arc::clone(&stats_handler) as Arc<dyn crate::solana::EventHandler>) {
+            match EventService::with_handler_and_storage(&config, Arc::clone(&stats_handler) as Arc<dyn crate::solana::EventHandler>, Arc::clone(&event_storage)) {
                 Ok(service) => Arc::new(tokio::sync::RwLock::new(service)),
                 Err(e) => {
                     error!("❌ Failed to initialize event service: {}", e);
@@ -111,7 +111,7 @@ async fn main() {
                     disabled_config.solana.enable_event_listener = false;
                     disabled_config.solana.program_id = "11111111111111111111111111111111".to_string(); // Use a valid program ID
                     let fallback_handler = Arc::new(StatsEventHandler::new(Arc::clone(&event_storage)));
-                    match EventService::with_handler(&disabled_config, Arc::clone(&fallback_handler) as Arc<dyn crate::solana::EventHandler>) {
+                    match EventService::with_handler_and_storage(&disabled_config, Arc::clone(&fallback_handler) as Arc<dyn crate::solana::EventHandler>, Arc::clone(&event_storage)) {
                         Ok(service) => Arc::new(tokio::sync::RwLock::new(service)),
                         Err(fallback_err) => {
                             error!("❌ Unable to create disabled event service: {}", fallback_err);
