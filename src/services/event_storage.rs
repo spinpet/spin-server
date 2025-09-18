@@ -21,6 +21,14 @@ pub const EVENT_TYPE_FULL_CLOSE: &str = "fc";
 pub const EVENT_TYPE_PARTIAL_CLOSE: &str = "pc";
 pub const EVENT_TYPE_MILESTONE_DISCOUNT: &str = "md";
 
+/// Kline interval constants - used for key generation (2 characters to save space)
+pub const KLINE_INTERVAL_1S: &str = "s1";
+pub const KLINE_INTERVAL_1M: &str = "m1";
+pub const KLINE_INTERVAL_5M: &str = "m5";
+
+/// Precision constant for u128 to f64 conversion (28 decimal places)
+pub const PRICE_PRECISION: u128 = 10_u128.pow(28);
+
 /// Event storage service
 pub struct EventStorage {
     db: Arc<DB>,
