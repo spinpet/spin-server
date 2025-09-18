@@ -14,9 +14,10 @@ use anyhow::Result;
 use utoipa::ToSchema;
 
 use crate::services::event_storage::EventStorage;
-use crate::models::{KlineData, KlineQuery, KlineQueryResponse};
+use crate::models::{KlineData, KlineQuery};
 use crate::solana::events::SpinPetEvent;
-use crate::services::event_service::{StatsEventHandler, EventHandler};
+use crate::services::event_service::StatsEventHandler;
+use crate::solana::EventHandler;
 
 /// K线推送服务配置
 #[derive(Debug, Clone)]
