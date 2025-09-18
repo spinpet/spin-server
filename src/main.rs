@@ -201,6 +201,13 @@ async fn main() {
     info!("  GET  /api/events/db-stats - Get database statistics");
 
     info!("  GET  /swagger-ui         - API documentation interface");
+    
+    if config.kline.enable_kline_service {
+        info!("📊 K-line WebSocket service:");
+        info!("  WS   /socket.io          - Real-time K-line data subscription");
+        info!("  Events: subscribe, unsubscribe, history, kline_data");
+        info!("  Supported intervals: s1, s30, m5");
+    }
 
     // Start server
     if let Err(e) = axum::serve(listener, app).await {
