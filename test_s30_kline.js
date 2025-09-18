@@ -70,6 +70,7 @@ socket.on('history_data', (data) => {
 });
 
 socket.on('kline_data', (data) => {
+    console.log(`🔔 收到K线数据 (间隔: ${data.interval}):`);
     if (data.interval === INTERVAL) {
         const klineTime = new Date(data.data.time * 1000);
         console.log(`📊 S30实时K线更新:`, {
@@ -84,6 +85,8 @@ socket.on('kline_data', (data) => {
             更新次数: data.data.update_count,
             接收时间: new Date(data.timestamp).toISOString()
         });
+    } else {
+        console.log(`⚠️ 收到其他间隔的K线数据: ${data.interval}, 跳过显示`);
     }
 });
 
