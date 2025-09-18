@@ -196,7 +196,7 @@ async fn main() {
     
     if config.kline.enable_kline_service {
         info!("📊 K-line WebSocket service:");
-        info!("  WS   /kline              - Real-time K-line data subscription");
+        info!("  WS   /socket.io/kline    - Real-time K-line data subscription");
         info!("  Events: subscribe, unsubscribe, history, kline_data");
         info!("  Supported intervals: s1, s30, m5");
     }
