@@ -109,6 +109,9 @@ pub fn create_router(config: &Config, app_state: Arc<AppState>) -> Router {
         // User order query routes
         .route("/api/user_orders", get(handlers::query_user_orders))
         
+        // Kline query routes
+        .route("/api/kline", get(handlers::query_kline_data))
+        
         // Test IPFS functionality
         .route("/api/test-ipfs", post(handlers::test_ipfs_functionality))
         
