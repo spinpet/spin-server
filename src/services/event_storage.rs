@@ -568,7 +568,7 @@ impl EventStorage {
         let price = self.convert_price_to_f64(latest_price);
         let unix_timestamp = timestamp.timestamp() as u64;
         
-        let intervals = [KLINE_INTERVAL_1S, KLINE_INTERVAL_1M, KLINE_INTERVAL_5M];
+        let intervals = [KLINE_INTERVAL_1S, KLINE_INTERVAL_30S, KLINE_INTERVAL_5M];
         
         for interval in intervals {
             let time_bucket = self.calculate_time_bucket(unix_timestamp, interval);
