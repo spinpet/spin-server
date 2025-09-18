@@ -89,6 +89,21 @@ pub struct UserOrderQueryParams {
     pub order_by: Option<String>,
 }
 
+/// Kline query parameters
+#[derive(Debug, Deserialize, ToSchema, utoipa::IntoParams)]
+pub struct KlineQueryParams {
+    /// Token address
+    pub mint: String,
+    /// Time interval: "s1" (1 second), "m1" (1 minute), "m5" (5 minutes)
+    pub interval: String,
+    /// Page number (starts from 1)
+    pub page: Option<usize>,
+    /// Items per page (maximum 1000)
+    pub limit: Option<usize>,
+    /// Sort order: "time_asc" (oldest first) or "time_desc" (newest first, default)
+    pub order_by: Option<String>,
+}
+
 /// Event query API
 #[utoipa::path(
     get,
