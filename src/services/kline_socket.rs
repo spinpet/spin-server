@@ -639,3 +639,98 @@ pub async fn start_performance_monitoring_task(
         }
     })
 }
+
+/// 扩展的事件处理器，增加K线实时推送功能
+pub struct KlineEventHandler {
+    pub stats_handler: Arc<StatsEventHandler>,
+    pub kline_service: Arc<KlineSocketService>,
+}
+
+impl KlineEventHandler {
+    pub fn new(
+        stats_handler: Arc<StatsEventHandler>,
+        kline_service: Arc<KlineSocketService>
+    ) -> Self {
+        Self {
+            stats_handler,
+            kline_service,
+        }
+    }
+    
+    /// 提取事件中的价格信息
+    fn extract_price_info(&self, event: &SpinPetEvent) -> Option<(String, u128, DateTime<Utc>)> {
+        match event {
+            SpinPetEvent::BuySell(e) => Some((e.mint_account.clone(), e.latest_price, e.timestamp)),
+            SpinPetEvent::LongShort(e) => Some((e.mint_account.clone(), e.latest_price, e.timestamp)),
+            SpinPetEvent::FullClose(e) => Some((e.mint_account.clone(), e.latest_price, e.timestamp)),
+            SpinPetEvent::PartialClose(e) => Some((e.mint_account.clone(), e.latest_price, e.timestamp)),
+            _ => None, // TokenCreated、ForceLiquidate、MilestoneDiscount 不包含价格信息
+        }
+    }
+    
+    /// 触发K线数据推送
+    async fn trigger_kline_push(
+        &self, 
+        mint_account: &str, 
+        latest_price: u128, 
+        timestamp: DateTime<Utc>
+    ) -> Result<()> {
+        let intervals = ["s1", "s30", "m5"];
+        
+        for interval in intervals {
+            // 获取更新后的K线数据（从现有存储中读取）
+            if let Ok(kline_data) = self.get_latest_kline(mint_account, interval, timestamp).await {
+                // 使用 KlineSocketService 广播到对应房间
+                if let Err(e) = self.kline_service.broadcast_kline_update(mint_account, interval, &kline_data).await {
+                    warn!("Failed to broadcast kline update: {}", e);
+                }
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// 获取最新K线数据
+    async fn get_latest_kline(
+        &self,
+        mint_account: &str,
+        interval: &str,
+        _timestamp: DateTime<Utc>
+    ) -> Result<KlineData> {
+        // 从现有的 EventStorage 查询K线数据
+        let query = KlineQuery {
+            mint_account: mint_account.to_string(),
+            interval: interval.to_string(),
+            page: Some(1),
+            limit: Some(1),
+            order_by: Some("time_desc".to_string()),
+        };
+        
+        let response = self.kline_service.event_storage.query_kline_data(query).await?;
+        
+        if let Some(kline) = response.klines.first() {
+            Ok(kline.clone())
+        } else {
+            Err(anyhow::anyhow!("No kline data found"))
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl EventHandler for KlineEventHandler {
+    async fn handle_event(&self, event: SpinPetEvent) -> anyhow::Result<()> {
+        // 1. 调用现有的统计和存储逻辑
+        self.stats_handler.handle_event(event.clone()).await?;
+        
+        // 2. 提取价格信息并触发实时推送
+        if let Some((mint_account, latest_price, timestamp)) = self.extract_price_info(&event) {
+            if let Err(e) = self.trigger_kline_push(&mint_account, latest_price, timestamp).await {
+                warn!("Failed to trigger kline push for {}: {}", mint_account, e);
+            } else {
+                debug!("✅ Triggered kline push for {} at price {}", mint_account, latest_price);
+            }
+        }
+        
+        Ok(())
+    }
+}
