@@ -139,11 +139,7 @@ async fn main() {
         info!("ℹ️ Event listener is disabled");
     }
 
-    // Get event storage reference
-    let event_storage = {
-        let service = event_service.read().await;
-        service.get_event_storage()
-    };
+    // 使用已经创建的共享事件存储
 
     // Create application state
     let app_state = Arc::new(AppState {
