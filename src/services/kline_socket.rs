@@ -337,7 +337,7 @@ impl KlineSocketService {
                     {
                         let mut manager = subscriptions.write().await;
                         if let Err(e) = manager.add_subscription(&socket.id.to_string(), &data.symbol, &data.interval) {
-                            let _ = socket.emit("error", serde_json::json!({
+                            let _ = socket.emit("error", &serde_json::json!({
                                 "code": 1002,
                                 "message": e.to_string()
                             }));
