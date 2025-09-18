@@ -554,6 +554,72 @@ impl EventStorage {
         }
     }
 
+    /// Process kline data for price events
+    async fn process_kline_data(&self, mint_account: &str, latest_price: u128, timestamp: DateTime<Utc>) -> Result<()> {
+        let price = self.convert_price_to_f64(latest_price);
+        let unix_timestamp = timestamp.timestamp() as u64;
+        
+        let intervals = [KLINE_INTERVAL_1S, KLINE_INTERVAL_1M, KLINE_INTERVAL_5M];
+        
+        for interval in intervals {
+            let time_bucket = self.calculate_time_bucket(unix_timestamp, interval);
+            let kline_key = self.generate_kline_key(interval, mint_account, time_bucket);
+            
+            // Try to get existing kline data
+            let mut kline_data = match self.db.get(kline_key.as_bytes())? {
+                Some(data) => {
+                    match serde_json::from_slice::<KlineData>(&data) {
+                        Ok(mut existing_kline) => {
+                            // Update existing kline data
+                            existing_kline.high = existing_kline.high.max(price);
+                            existing_kline.low = existing_kline.low.min(price);
+                            existing_kline.close = price;
+                            existing_kline.update_count += 1;
+                            existing_kline.is_final = false; // Mark as not final since it's being updated
+                            existing_kline
+                        }
+                        Err(e) => {
+                            warn!("Failed to parse existing kline data: {}, creating new one", e);
+                            // Create new kline data if parsing fails
+                            KlineData {
+                                time: time_bucket,
+                                open: price,
+                                high: price,
+                                low: price,
+                                close: price,
+                                volume: 0.0, // Volume is 0 as requested
+                                is_final: false,
+                                update_count: 1,
+                            }
+                        }
+                    }
+                }
+                None => {
+                    // Create new kline data
+                    KlineData {
+                        time: time_bucket,
+                        open: price,
+                        high: price,
+                        low: price,
+                        close: price,
+                        volume: 0.0, // Volume is 0 as requested
+                        is_final: false,
+                        update_count: 1,
+                    }
+                }
+            };
+            
+            // Store updated kline data
+            let value = serde_json::to_vec(&kline_data)?;
+            self.db.put(kline_key.as_bytes(), &value)?;
+            
+            debug!("💹 Kline data updated for interval {}, mint: {}, time: {}, price: {}", 
+                   interval, mint_account, time_bucket, price);
+        }
+        
+        Ok(())
+    }
+
     /// Generate mint detail key
     /// Format: in:{mint_account}
     fn generate_mint_detail_key(&self, mint_account: &str) -> String {
