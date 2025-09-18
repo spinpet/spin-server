@@ -9,6 +9,7 @@ pub struct Config {
     pub solana: SolanaConfig,
     pub database: DatabaseConfig,
     pub ipfs: IpfsConfig,
+    pub kline: KlineServiceConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
