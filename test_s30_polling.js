@@ -7,7 +7,7 @@ const axios = require('axios');
 
 // 配置
 const SERVER_URL = 'http://localhost:5051';
-const TEST_MINT = 'DTyWzeXUXXaYqJAbqP3J2wS4WJHrBz9NauNi63hBdjQP';
+const TEST_MINT = '7uWcH2Qviw5AAtojG97pyoAbDaN3a91pTEXMBU5cQmwx';
 const INTERVAL = 's30';
 const POLLING_INTERVAL = 5000; // 5秒轮询一次
 
