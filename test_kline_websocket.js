@@ -15,8 +15,8 @@ console.log(`📍 服务器地址: ${SERVER_URL}`);
 console.log(`🪙 测试代币: ${TEST_MINT}`);
 console.log(`⏰ 测试间隔: ${TEST_INTERVALS.join(', ')}`);
 
-// 创建 Socket.IO 客户端
-const socket = io(SERVER_URL, {
+// 创建 Socket.IO 客户端 - 连接到 /kline 命名空间
+const socket = io(`${SERVER_URL}/kline`, {
     transports: ['websocket', 'polling'],
     timeout: 20000,
     reconnection: true,
