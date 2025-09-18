@@ -13,7 +13,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::config::Config;
 use crate::routes::create_router;
-use crate::services::EventService;
+use crate::services::{EventService, KlineSocketService, KlineEventHandler, StatsEventHandler, 
+                     start_connection_cleanup_task, start_performance_monitoring_task, KlineConfig};
 use crate::handlers::AppState;
 
 #[tokio::main]
