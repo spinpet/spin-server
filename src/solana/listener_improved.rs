@@ -471,7 +471,7 @@ impl SolanaEventListener {
                         }
                         
                         // Skip failed transactions unless explicitly configured to process them
-                        if !self.config.process_failed_transactions {
+                        if !config.process_failed_transactions {
                             debug!("⏭️ Skipping failed transaction {} (process_failed_transactions=false)", signature);
                             return Ok(());
                         } else {
