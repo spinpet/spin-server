@@ -29,6 +29,7 @@ use crate::config::Config;
         handlers::query_mint_details,
         handlers::query_kline_data,
         handlers::get_kline_status,
+        handlers::get_kline_subscriptions,
     ),
     components(
         schemas(
