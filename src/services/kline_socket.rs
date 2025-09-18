@@ -487,10 +487,16 @@ impl KlineSocketService {
             timestamp: Utc::now().timestamp_millis() as u64,
         };
         
+        info!("📡 Broadcasting kline update to room: {}", room_name);
+        info!("📊 Update message: time={}, open={}, high={}, low={}, close={}, volume={}, is_final={}, update_count={}", 
+            update_message.data.time, update_message.data.open, update_message.data.high, 
+            update_message.data.low, update_message.data.close, update_message.data.volume,
+            update_message.data.is_final, update_message.data.update_count);
+        
         if let Err(e) = self.socketio.to(room_name.clone()).emit("kline_data", &update_message).await {
-            warn!("Failed to broadcast to room {}: {}", room_name, e);
+            warn!("❌ Failed to broadcast to room {}: {}", room_name, e);
         } else {
-            debug!("📡 Broadcasted kline update to room {}", room_name);
+            info!("✅ Successfully broadcasted kline update to room {}", room_name);
         }
         
         Ok(())
@@ -747,16 +753,21 @@ impl KlineEventHandler {
 #[async_trait::async_trait]
 impl EventHandler for KlineEventHandler {
     async fn handle_event(&self, event: SpinPetEvent) -> anyhow::Result<()> {
+        info!("🎯 KlineEventHandler received event: {:?}", event);
+        
         // 1. 调用现有的统计和存储逻辑
         self.stats_handler.handle_event(event.clone()).await?;
         
         // 2. 提取价格信息并触发实时推送
         if let Some((mint_account, latest_price, timestamp)) = self.extract_price_info(&event) {
+            info!("💰 Extracted price info: mint={}, price={}, timestamp={}", mint_account, latest_price, timestamp);
             if let Err(e) = self.trigger_kline_push(&mint_account, latest_price, timestamp).await {
-                warn!("Failed to trigger kline push for {}: {}", mint_account, e);
+                warn!("❌ Failed to trigger kline push for {}: {}", mint_account, e);
             } else {
-                debug!("✅ Triggered kline push for {} at price {}", mint_account, latest_price);
+                info!("✅ Successfully triggered kline push for {} at price {}", mint_account, latest_price);
             }
+        } else {
+            debug!("🚫 Event does not contain price info, skipping kline push: {:?}", event);
         }
         
         Ok(())
