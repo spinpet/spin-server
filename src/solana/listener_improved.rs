@@ -463,7 +463,11 @@ impl SolanaEventListener {
                     let is_transaction_success = transaction_error.is_none() || transaction_error == Some(&Value::Null);
                     
                     if !is_transaction_success {
-                        warn!("❌ Transaction {} failed - skipping", signature);
+                        if let Some(error_detail) = transaction_error {
+                            debug!("❌ Transaction {} failed with error: {} - skipping", signature, error_detail);
+                        } else {
+                            debug!("❌ Transaction {} failed with unknown error - skipping", signature);
+                        }
                         return Ok(());
                     }
                     
