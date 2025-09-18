@@ -33,4 +33,18 @@ rocksdb_path = "./data/rocksdb"
 gateway_url = "https://crimson-binding-tarantula-509.mypinata.cloud/ipfs/"
 request_timeout_seconds = 30
 max_retries = 3
-retry_delay_seconds = 5 
+retry_delay_seconds = 5
+
+[kline]
+# K线实时推送服务配置
+enable_kline_service = true
+# 连接超时时间（秒）
+connection_timeout_secs = 60
+# 每客户端最大订阅数
+max_subscriptions_per_client = 100
+# 历史数据默认条数
+history_data_limit = 100
+# 心跳间隔（秒）
+ping_interval_secs = 25
+# 心跳超时（秒）
+ping_timeout_secs = 60 
