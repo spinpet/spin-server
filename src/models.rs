@@ -42,7 +42,7 @@ pub struct KlineData {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct KlineQuery {
     pub mint_account: String,
-    pub interval: String, // "s1", "m1", "m5"
+    pub interval: String, // "s1", "s30", "m5"
     pub page: Option<usize>,
     pub limit: Option<usize>,
     pub order_by: Option<String>, // "time_asc" or "time_desc" (default)
