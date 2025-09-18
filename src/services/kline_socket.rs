@@ -681,7 +681,7 @@ impl KlineEventHandler {
     async fn trigger_kline_push(
         &self, 
         mint_account: &str, 
-        latest_price: u128, 
+        _latest_price: u128, 
         timestamp: DateTime<Utc>
     ) -> Result<()> {
         let intervals = ["s1", "s30", "m5"];
