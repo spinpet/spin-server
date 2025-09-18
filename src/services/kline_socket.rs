@@ -313,7 +313,7 @@ impl KlineSocketService {
         });
         
         // K线数据订阅事件
-        self.socketio.ns("/", {
+        self.socketio.ns("/kline", {
             let subscriptions = subscriptions.clone();
             let event_storage = event_storage.clone();
             
