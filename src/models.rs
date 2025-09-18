@@ -25,6 +25,42 @@ pub struct TimeQuery {
     pub format: Option<String>,
 }
 
+// Kline data structure
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct KlineData {
+    pub time: u64,
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    pub volume: f64,
+    pub is_final: bool,
+    pub update_count: u32,
+}
+
+// Kline query parameters
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct KlineQuery {
+    pub mint_account: String,
+    pub interval: String, // "s1", "m1", "m5"
+    pub page: Option<usize>,
+    pub limit: Option<usize>,
+    pub order_by: Option<String>, // "time_asc" or "time_desc" (default)
+}
+
+// Kline query response
+#[derive(Debug, Serialize, Default, ToSchema)]
+pub struct KlineQueryResponse {
+    pub klines: Vec<KlineData>,
+    pub total: usize,
+    pub page: usize,
+    pub limit: usize,
+    pub has_next: bool,
+    pub has_prev: bool,
+    pub interval: String,
+    pub mint_account: String,
+}
+
 // Re-export types from services module
 pub use crate::services::{EventServiceStatus, EventStats};
 
