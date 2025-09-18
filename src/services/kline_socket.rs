@@ -953,6 +953,9 @@ mod tests {
             connection_time: Instant::now(),
             subscription_count: 0,
             user_agent: Some("test_client".to_string()),
+            kline_data_sent_count: 0,
+            history_data_sent_count: 0,
+            total_messages_sent: 0,
         });
 
         // 测试添加订阅
@@ -991,6 +994,9 @@ mod tests {
             connection_time: Instant::now(),
             subscription_count: 100, // 已达到限制
             user_agent: Some("test_client".to_string()),
+            kline_data_sent_count: 0,
+            history_data_sent_count: 0,
+            total_messages_sent: 0,
         });
 
         // 尝试添加超出限制的订阅
