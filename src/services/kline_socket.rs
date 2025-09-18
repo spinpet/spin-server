@@ -690,17 +690,27 @@ impl KlineEventHandler {
     async fn trigger_kline_push(
         &self, 
         mint_account: &str, 
-        _latest_price: u128, 
+        latest_price: u128, 
         timestamp: DateTime<Utc>
     ) -> Result<()> {
+        info!("🔔 Triggering kline push for mint: {}, price: {}, timestamp: {}", mint_account, latest_price, timestamp);
         let intervals = ["s1", "s30", "m5"];
         
         for interval in intervals {
+            info!("📊 Processing interval: {} for mint: {}", interval, mint_account);
             // 获取更新后的K线数据（从现有存储中读取）
-            if let Ok(kline_data) = self.get_latest_kline(mint_account, interval, timestamp).await {
-                // 使用 KlineSocketService 广播到对应房间
-                if let Err(e) = self.kline_service.broadcast_kline_update(mint_account, interval, &kline_data).await {
-                    warn!("Failed to broadcast kline update: {}", e);
+            match self.get_latest_kline(mint_account, interval, timestamp).await {
+                Ok(kline_data) => {
+                    info!("✅ Found kline data for {}:{} - time: {}, price: {}", mint_account, interval, kline_data.time, kline_data.close);
+                    // 使用 KlineSocketService 广播到对应房间
+                    if let Err(e) = self.kline_service.broadcast_kline_update(mint_account, interval, &kline_data).await {
+                        warn!("❌ Failed to broadcast kline update: {}", e);
+                    } else {
+                        info!("📡 Successfully broadcasted kline update for {}:{}", mint_account, interval);
+                    }
+                }
+                Err(e) => {
+                    warn!("⚠️ No kline data found for {}:{} - {}", mint_account, interval, e);
                 }
             }
         }
