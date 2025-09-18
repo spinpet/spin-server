@@ -428,6 +428,7 @@ impl SolanaEventListener {
         event_broadcaster: &broadcast::Sender<SpinPetEvent>,
         client: &Arc<SolanaClient>,
         processed_signatures: &Arc<tokio::sync::RwLock<HashSet<String>>>,
+        config: &SolanaConfig,
     ) -> anyhow::Result<()> {
         debug!("📨 Processing WebSocket message");
         
