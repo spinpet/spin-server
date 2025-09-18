@@ -38,21 +38,91 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    // Initialize event service
-    let event_service = match EventService::new(&config) {
-        Ok(service) => Arc::new(tokio::sync::RwLock::new(service)),
-        Err(e) => {
-            error!("❌ Failed to initialize event service: {}", e);
-            warn!("⚠️ Continuing without event listener enabled");
-            // Create a disabled config
-            let mut disabled_config = config.clone();
-            disabled_config.solana.enable_event_listener = false;
-            disabled_config.solana.program_id = "11111111111111111111111111111111".to_string(); // Use a valid program ID
-            match EventService::new(&disabled_config) {
+    // Initialize K线推送服务 (如果启用)
+    let (kline_socket_service, socketio_layer) = if config.kline.enable_kline_service {
+        info!("🚀 Initializing K-line WebSocket service");
+        
+        // 创建事件存储
+        let event_storage = match crate::services::EventStorage::new(&config) {
+            Ok(storage) => Arc::new(storage),
+            Err(e) => {
+                error!("❌ Failed to create event storage: {}", e);
+                std::process::exit(1);
+            }
+        };
+        
+        // 创建K线配置
+        let kline_config = KlineConfig::from_config(&config.kline);
+        
+        // 创建K线推送服务
+        let (kline_service, layer) = match KlineSocketService::new(Arc::clone(&event_storage), kline_config) {
+            Ok((service, layer)) => (Arc::new(service), Some(layer)),
+            Err(e) => {
+                error!("❌ Failed to create K-line socket service: {}", e);
+                std::process::exit(1);
+            }
+        };
+        
+        // 设置事件处理器
+        kline_service.setup_socket_handlers();
+        
+        info!("✅ K-line WebSocket service initialized");
+        (Some(kline_service), layer)
+    } else {
+        info!("ℹ️ K-line WebSocket service is disabled");
+        (None, None)
+    };
+    
+    // Initialize event service with K-line support
+    let event_service = match &kline_socket_service {
+        Some(kline_service) => {
+            // 创建事件存储
+            let event_storage = Arc::clone(&kline_service.event_storage);
+            
+            // 创建统计事件处理器
+            let stats_handler = Arc::new(StatsEventHandler::new(Arc::clone(&event_storage)));
+            
+            // 创建K线事件处理器
+            let kline_handler = Arc::new(KlineEventHandler::new(
+                Arc::clone(&stats_handler),
+                Arc::clone(kline_service)
+            ));
+            
+            // 使用自定义事件处理器创建事件服务
+            match EventService::with_handler(&config, Arc::clone(&kline_handler) as Arc<dyn crate::solana::EventHandler>) {
                 Ok(service) => Arc::new(tokio::sync::RwLock::new(service)),
-                Err(fallback_err) => {
-                    error!("❌ Unable to create disabled event service: {}", fallback_err);
-                    std::process::exit(1);
+                Err(e) => {
+                    error!("❌ Failed to initialize event service with K-line handler: {}", e);
+                    warn!("⚠️ Falling back to basic event service");
+                    
+                    match EventService::new(&config) {
+                        Ok(service) => Arc::new(tokio::sync::RwLock::new(service)),
+                        Err(fallback_err) => {
+                            error!("❌ Unable to create fallback event service: {}", fallback_err);
+                            std::process::exit(1);
+                        }
+                    }
+                }
+            }
+        },
+        None => {
+            // 创建标准的事件服务
+            match EventService::new(&config) {
+                Ok(service) => Arc::new(tokio::sync::RwLock::new(service)),
+                Err(e) => {
+                    error!("❌ Failed to initialize event service: {}", e);
+                    warn!("⚠️ Continuing without event listener enabled");
+                    // Create a disabled config
+                    let mut disabled_config = config.clone();
+                    disabled_config.solana.enable_event_listener = false;
+                    disabled_config.solana.program_id = "11111111111111111111111111111111".to_string(); // Use a valid program ID
+                    match EventService::new(&disabled_config) {
+                        Ok(service) => Arc::new(tokio::sync::RwLock::new(service)),
+                        Err(fallback_err) => {
+                            error!("❌ Unable to create disabled event service: {}", fallback_err);
+                            std::process::exit(1);
+                        }
+                    }
                 }
             }
         }
