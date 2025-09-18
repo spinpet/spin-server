@@ -175,7 +175,7 @@ pub struct UserQuery {
     pub order_by: Option<String>, // "slot_asc" or "slot_desc"
 }
 
-/// User transaction query response
+/// User transaction query response 
 #[derive(Debug, Serialize, Deserialize, Default, utoipa::ToSchema)]
 pub struct UserQueryResponse {
     pub transactions: Vec<UserTransactionData>,
