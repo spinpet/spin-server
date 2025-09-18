@@ -464,11 +464,18 @@ impl SolanaEventListener {
                     
                     if !is_transaction_success {
                         if let Some(error_detail) = transaction_error {
-                            debug!("❌ Transaction {} failed with error: {} - skipping", signature, error_detail);
+                            debug!("❌ Transaction {} failed with error: {}", signature, error_detail);
                         } else {
-                            debug!("❌ Transaction {} failed with unknown error - skipping", signature);
+                            debug!("❌ Transaction {} failed with unknown error", signature);
                         }
-                        return Ok(());
+                        
+                        // Skip failed transactions unless explicitly configured to process them
+                        if !config.process_failed_transactions {
+                            debug!("⏭️ Skipping failed transaction {} (process_failed_transactions=false)", signature);
+                            return Ok(());
+                        } else {
+                            debug!("🔄 Processing failed transaction {} (process_failed_transactions=true)", signature);
+                        }
                     }
                     
                     // Check if already processed
