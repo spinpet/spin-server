@@ -520,8 +520,8 @@ pub async fn query_kline_data(
         return Ok(Json(ApiResponse::error("mint parameter cannot be empty")));
     }
 
-    if !matches!(params.interval.as_str(), "s1" | "m1" | "m5") {
-        return Ok(Json(ApiResponse::error("interval parameter must be one of: s1, m1, m5")));
+    if !matches!(params.interval.as_str(), "s1" | "s30" | "m5") {
+        return Ok(Json(ApiResponse::error("interval parameter must be one of: s1, s30, m5")));
     }
 
     let limit = params.limit.unwrap_or(50);
