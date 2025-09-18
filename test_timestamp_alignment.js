@@ -31,7 +31,7 @@ const testTimestamps = [
     1726628220, // 2024-09-18 03:57:00
 ];
 
-const intervals = ['s1', 'm1', 'm5'];
+const intervals = ['s1', 's30', 'm5'];
 
 testTimestamps.forEach((timestamp, i) => {
     console.log(`📊 Test ${i + 1}: ${timestamp} (${formatTimestamp(timestamp)})`);
