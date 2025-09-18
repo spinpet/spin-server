@@ -61,6 +61,16 @@ pub struct IpfsConfig {
     pub retry_delay_seconds: u64,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct KlineServiceConfig {
+    pub enable_kline_service: bool,
+    pub connection_timeout_secs: u64,
+    pub max_subscriptions_per_client: usize,
+    pub history_data_limit: usize,
+    pub ping_interval_secs: u64,
+    pub ping_timeout_secs: u64,
+}
+
 impl Config {
     pub fn new() -> anyhow::Result<Self> {
         let run_mode = env::var("RUST_ENV").unwrap_or_else(|_| "development".into());
