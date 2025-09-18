@@ -111,6 +111,7 @@ pub fn create_router(config: &Config, app_state: Arc<AppState>) -> Router {
         
         // Kline query routes
         .route("/api/kline", get(handlers::query_kline_data))
+        .route("/api/kline/status", get(handlers::get_kline_status))
         
         // Test IPFS functionality
         .route("/api/test-ipfs", post(handlers::test_ipfs_functionality))
