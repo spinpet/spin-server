@@ -531,6 +531,18 @@ impl KlineSocketService {
             warn!("❌ Failed to broadcast to room {}: {}", room_name, e);
         } else {
             info!("✅ Successfully broadcasted kline update to room {}", room_name);
+            
+            // 更新所有订阅了该房间的客户端的 kline_data 发送计数
+            {
+                let mut manager = self.subscriptions.write().await;
+                let subscribers = manager.get_subscribers(mint_account, interval);
+                for socket_id in subscribers {
+                    if let Some(client) = manager.connections.get_mut(&socket_id) {
+                        client.kline_data_sent_count += 1;
+                        client.total_messages_sent += 1;
+                    }
+                }
+            }
         }
         
         Ok(())
