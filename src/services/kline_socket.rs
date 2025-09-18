@@ -799,6 +799,7 @@ mod tests {
                 event_buffer_size: 1000,
                 event_batch_size: 100,
                 ping_interval_seconds: 60,
+                process_failed_transactions: true,
             },
             database: DatabaseConfig {
                 rocksdb_path: temp_dir.path().to_str().unwrap().to_string(),
