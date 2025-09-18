@@ -28,6 +28,7 @@ use crate::config::Config;
         handlers::test_ipfs_functionality,
         handlers::query_mint_details,
         handlers::query_kline_data,
+        handlers::get_kline_status,
     ),
     components(
         schemas(
