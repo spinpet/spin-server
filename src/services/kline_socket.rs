@@ -324,122 +324,133 @@ impl KlineSocketService {
             let subscriptions = subscriptions.clone();
             let event_storage = event_storage.clone();
             
-            move |socket: SocketRef, Data(data): Data<SubscribeRequest>| {
+            move |socket: SocketRef| {
                 let subscriptions = subscriptions.clone();
                 let event_storage = event_storage.clone();
                 
-                tokio::spawn(async move {
-                    info!("📊 Subscribe request from {}: {} {}", socket.id, data.symbol, data.interval);
+                // 订阅事件处理器
+                socket.on("subscribe", {
+                    let subscriptions = subscriptions.clone();
+                    let event_storage = event_storage.clone();
                     
-                    // 验证订阅请求
-                    if let Err(e) = validate_subscribe_request(&data) {
-                        let _ = socket.emit("error", &serde_json::json!({
-                            "code": 1001,
-                            "message": e.to_string()
-                        }));
-                        return;
-                    }
-                    
-                    // 添加订阅
-                    {
-                        let mut manager = subscriptions.write().await;
-                        if let Err(e) = manager.add_subscription(&socket.id.to_string(), &data.symbol, &data.interval) {
-                            let _ = socket.emit("error", &serde_json::json!({
-                                "code": 1002,
-                                "message": e.to_string()
-                            }));
-                            return;
-                        }
+                    move |socket: SocketRef, Data(data): Data<SubscribeRequest>| {
+                        let subscriptions = subscriptions.clone();
+                        let event_storage = event_storage.clone();
                         
-                        // 更新活动时间
-                        manager.update_activity(&socket.id.to_string());
-                    }
-                    
-                    // 加入对应的房间
-                    let room_name = format!("kline:{}:{}", data.symbol, data.interval);
-                    socket.join(room_name);
-                    
-                    // 推送历史数据
-                    if let Ok(history) = get_kline_history(&event_storage, &data.symbol, &data.interval, 100).await {
-                        if let Err(e) = socket.emit("history_data", &history) {
-                            warn!("Failed to send history data: {}", e);
-                        }
-                    }
-                    
-                    // 确认订阅成功
-                    let _ = socket.emit("subscription_confirmed", &serde_json::json!({
-                        "symbol": data.symbol,
-                        "interval": data.interval,
-                        "subscription_id": data.subscription_id,
-                        "success": true,
-                        "message": "订阅成功"
-                    }));
-                });
-            }
-        });
-        
-        // 取消订阅事件
-        self.socketio.ns("/kline", {
-            let subscriptions = subscriptions.clone();
-            
-            move |socket: SocketRef, Data(data): Data<UnsubscribeRequest>| {
-                let subscriptions = subscriptions.clone();
-                
-                tokio::spawn(async move {
-                    info!("🚫 Unsubscribe request from {}: {} {}", socket.id, data.symbol, data.interval);
-                    
-                    // 移除订阅
-                    {
-                        let mut manager = subscriptions.write().await;
-                        manager.remove_subscription(&socket.id.to_string(), &data.symbol, &data.interval);
-                        manager.update_activity(&socket.id.to_string());
-                    }
-                    
-                    // 离开对应的房间
-                    let room_name = format!("kline:{}:{}", data.symbol, data.interval);
-                    socket.leave(room_name);
-                    
-                    // 确认取消订阅
-                    let _ = socket.emit("unsubscribe_confirmed", &serde_json::json!({
-                        "symbol": data.symbol,
-                        "interval": data.interval,
-                        "subscription_id": data.subscription_id,
-                        "success": true
-                    }));
-                });
-            }
-        });
-        
-        // 获取历史数据事件
-        self.socketio.ns("/kline", {
-            let event_storage = event_storage.clone();
-            let subscriptions = subscriptions.clone();
-            
-            move |socket: SocketRef, Data(data): Data<HistoryRequest>| {
-                let event_storage = event_storage.clone();
-                let subscriptions = subscriptions.clone();
-                
-                tokio::spawn(async move {
-                    info!("📈 History request from {}: {} {}", socket.id, data.symbol, data.interval);
-                    
-                    // 更新活动时间
-                    {
-                        let mut manager = subscriptions.write().await;
-                        manager.update_activity(&socket.id.to_string());
-                    }
-                    
-                    match get_kline_history(&event_storage, &data.symbol, &data.interval, data.limit.unwrap_or(100)).await {
-                        Ok(history) => {
-                            if let Err(e) = socket.emit("history_data", &history) {
-                                warn!("Failed to send history data: {}", e);
+                        tokio::spawn(async move {
+                            info!("📊 Subscribe request from {}: {} {}", socket.id, data.symbol, data.interval);
+                            
+                            // 验证订阅请求
+                            if let Err(e) = validate_subscribe_request(&data) {
+                                let _ = socket.emit("error", &serde_json::json!({
+                                    "code": 1001,
+                                    "message": e.to_string()
+                                }));
+                                return;
                             }
-                        }
-                        Err(e) => {
-                            let _ = socket.emit("error", &serde_json::json!({
-                                "code": 1003,
-                                "message": e.to_string()
+                            
+                            // 添加订阅
+                            {
+                                let mut manager = subscriptions.write().await;
+                                if let Err(e) = manager.add_subscription(&socket.id.to_string(), &data.symbol, &data.interval) {
+                                    let _ = socket.emit("error", &serde_json::json!({
+                                        "code": 1002,
+                                        "message": e.to_string()
+                                    }));
+                                    return;
+                                }
+                                
+                                // 更新活动时间
+                                manager.update_activity(&socket.id.to_string());
+                            }
+                            
+                            // 加入对应的房间
+                            let room_name = format!("kline:{}:{}", data.symbol, data.interval);
+                            socket.join(room_name);
+                            
+                            // 推送历史数据
+                            if let Ok(history) = get_kline_history(&event_storage, &data.symbol, &data.interval, 100).await {
+                                if let Err(e) = socket.emit("history_data", &history) {
+                                    warn!("Failed to send history data: {}", e);
+                                }
+                            }
+                            
+                            // 确认订阅成功
+                            let _ = socket.emit("subscription_confirmed", &serde_json::json!({
+                                "symbol": data.symbol,
+                                "interval": data.interval,
+                                "subscription_id": data.subscription_id,
+                                "success": true,
+                                "message": "订阅成功"
                             }));
-                        }
+                        });
+                    }
+                });
+                
+                // 取消订阅事件处理器
+                socket.on("unsubscribe", {
+                    let subscriptions = subscriptions.clone();
+                    
+                    move |socket: SocketRef, Data(data): Data<UnsubscribeRequest>| {
+                        let subscriptions = subscriptions.clone();
+                        
+                        tokio::spawn(async move {
+                            info!("🚫 Unsubscribe request from {}: {} {}", socket.id, data.symbol, data.interval);
+                            
+                            // 移除订阅
+                            {
+                                let mut manager = subscriptions.write().await;
+                                manager.remove_subscription(&socket.id.to_string(), &data.symbol, &data.interval);
+                                manager.update_activity(&socket.id.to_string());
+                            }
+                            
+                            // 离开对应的房间
+                            let room_name = format!("kline:{}:{}", data.symbol, data.interval);
+                            socket.leave(room_name);
+                            
+                            // 确认取消订阅
+                            let _ = socket.emit("unsubscribe_confirmed", &serde_json::json!({
+                                "symbol": data.symbol,
+                                "interval": data.interval,
+                                "subscription_id": data.subscription_id,
+                                "success": true
+                            }));
+                        });
+                    }
+                });
+                
+                // 历史数据事件处理器
+                socket.on("history", {
+                    let event_storage = event_storage.clone();
+                    let subscriptions = subscriptions.clone();
+                    
+                    move |socket: SocketRef, Data(data): Data<HistoryRequest>| {
+                        let event_storage = event_storage.clone();
+                        let subscriptions = subscriptions.clone();
+                        
+                        tokio::spawn(async move {
+                            info!("📈 History request from {}: {} {}", socket.id, data.symbol, data.interval);
+                            
+                            // 更新活动时间
+                            {
+                                let mut manager = subscriptions.write().await;
+                                manager.update_activity(&socket.id.to_string());
+                            }
+                            
+                            match get_kline_history(&event_storage, &data.symbol, &data.interval, data.limit.unwrap_or(100)).await {
+                                Ok(history) => {
+                                    if let Err(e) = socket.emit("history_data", &history) {
+                                        warn!("Failed to send history data: {}", e);
+                                    }
+                                }
+                                Err(e) => {
+                                    let _ = socket.emit("error", &serde_json::json!({
+                                        "code": 1003,
+                                        "message": e.to_string()
+                                    }));
+                                }
+                            }
+                        });
                     }
                 });
             }
