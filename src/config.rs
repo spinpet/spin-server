@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use std::env;
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone)] 
 pub struct Config {
     pub server: ServerConfig,
     pub cors: CorsConfig,
