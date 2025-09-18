@@ -7,7 +7,7 @@ const { io } = require('socket.io-client');
 
 // 配置
 const SERVER_URL = 'http://localhost:5051';
-const TEST_MINT = 'JBMmrp6jhksqnxDBskkmVvWHhJLaPBjgiMHEroJbUTBZ'; // 测试用的 mint 地址
+const TEST_MINT = 'Gj5A2A3XKeSTbynnqYd9JP2HwwhrqtSgftun8dqWhKD8'; // 测试用的 mint 地址
 const TEST_INTERVALS = ['s1', 's30', 'm5'];
 
 console.log('🚀 启动 K线 WebSocket 测试...');
