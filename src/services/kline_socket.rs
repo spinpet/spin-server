@@ -276,7 +276,7 @@ impl KlineSocketService {
         let _config = self.config.clone();
         
         // 连接建立事件
-        self.socketio.ns("/", {
+        self.socketio.ns("/kline", {
             let subscriptions = subscriptions.clone();
             move |socket: SocketRef| {
                 let subscriptions = subscriptions.clone();
