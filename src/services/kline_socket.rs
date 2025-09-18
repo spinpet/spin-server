@@ -527,21 +527,50 @@ impl KlineSocketService {
             update_message.data.low, update_message.data.close, update_message.data.volume,
             update_message.data.is_final, update_message.data.update_count);
         
-        if let Err(e) = self.socketio.to(room_name.clone()).emit("kline_data", &update_message).await {
-            warn!("❌ Failed to broadcast to room {}: {}", room_name, e);
-        } else {
-            info!("✅ Successfully broadcasted kline update to room {}", room_name);
-            
-            // 更新所有订阅了该房间的客户端的 kline_data 发送计数
-            {
-                let mut manager = self.subscriptions.write().await;
-                let subscribers = manager.get_subscribers(mint_account, interval);
-                for socket_id in subscribers {
-                    if let Some(client) = manager.connections.get_mut(&socket_id) {
-                        client.kline_data_sent_count += 1;
-                        client.total_messages_sent += 1;
+        // 在发送前检查房间中的实际连接
+        {
+            let manager = self.subscriptions.read().await;
+            let subscribers = manager.get_subscribers(mint_account, interval);
+            info!("📋 Room {} has {} subscribers: {:?}", room_name, subscribers.len(), subscribers);
+        }
+        
+        // 尝试发送到具体的 socket 而不是房间
+        let result = self.socketio.to(room_name.clone()).emit("kline_data", &update_message).await;
+        
+        match result {
+            Ok(_) => {
+                info!("✅ Successfully broadcasted kline update to room {}", room_name);
+                
+                // 验证消息确实发送到了客户端 - 尝试直接发送到socket
+                {
+                    let manager = self.subscriptions.read().await;
+                    let subscribers = manager.get_subscribers(mint_account, interval);
+                    info!("🔍 Attempting direct send to {} subscribers", subscribers.len());
+                    
+                    for socket_id in &subscribers {
+                        // 尝试直接发送给特定socket
+                        if let Err(e) = self.socketio.to(socket_id.clone()).emit("direct_kline_test", &update_message).await {
+                            warn!("❌ Failed to send direct test to socket {}: {}", socket_id, e);
+                        } else {
+                            info!("✅ Direct test sent to socket {}", socket_id);
+                        }
                     }
                 }
+                
+                // 更新所有订阅了该房间的客户端的 kline_data 发送计数
+                {
+                    let mut manager = self.subscriptions.write().await;
+                    let subscribers = manager.get_subscribers(mint_account, interval);
+                    for socket_id in subscribers {
+                        if let Some(client) = manager.connections.get_mut(&socket_id) {
+                            client.kline_data_sent_count += 1;
+                            client.total_messages_sent += 1;
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                warn!("❌ Failed to broadcast to room {}: {}", room_name, e);
             }
         }
         
