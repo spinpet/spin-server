@@ -439,7 +439,7 @@ impl KlineSocketService {
         });
         
         // 连接断开事件
-        self.socketio.ns("/", {
+        self.socketio.ns("/kline", {
             let subscriptions = subscriptions.clone();
             
             move |socket: SocketRef| {
