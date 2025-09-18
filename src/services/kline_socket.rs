@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::collections::{HashMap, HashSet};
 use tokio::sync::RwLock;
+use tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use socketioxide::SocketIo;
 use socketioxide::extract::{Data, SocketRef};
@@ -62,6 +63,9 @@ pub struct ClientConnection {
     pub connection_time: Instant,             // 连接建立时间
     pub subscription_count: usize,            // 当前订阅数量
     pub user_agent: Option<String>,           // 客户端信息
+    pub kline_data_sent_count: u64,          // kline_data 发送次数
+    pub history_data_sent_count: u64,        // history_data 发送次数
+    pub total_messages_sent: u64,            // 总消息发送次数
 }
 
 /// 订阅管理器
@@ -303,6 +307,9 @@ impl KlineSocketService {
                             connection_time: Instant::now(),
                             subscription_count: 0,
                             user_agent: None,
+                            kline_data_sent_count: 0,
+                            history_data_sent_count: 0,
+                            total_messages_sent: 0,
                         });
                     });
                 }
@@ -372,6 +379,15 @@ impl KlineSocketService {
                             if let Ok(history) = get_kline_history(&event_storage, &data.symbol, &data.interval, 100).await {
                                 if let Err(e) = socket.emit("history_data", &history) {
                                     warn!("Failed to send history data: {}", e);
+                                } else {
+                                    // 更新历史数据发送计数
+                                    {
+                                        let mut manager = subscriptions.write().await;
+                                        if let Some(client) = manager.connections.get_mut(&socket.id.to_string()) {
+                                            client.history_data_sent_count += 1;
+                                            client.total_messages_sent += 1;
+                                        }
+                                    }
                                 }
                             }
                             
@@ -441,6 +457,15 @@ impl KlineSocketService {
                                 Ok(history) => {
                                     if let Err(e) = socket.emit("history_data", &history) {
                                         warn!("Failed to send history data: {}", e);
+                                    } else {
+                                        // 更新历史数据发送计数
+                                        {
+                                            let mut manager = subscriptions.write().await;
+                                            if let Some(client) = manager.connections.get_mut(&socket.id.to_string()) {
+                                                client.history_data_sent_count += 1;
+                                                client.total_messages_sent += 1;
+                                            }
+                                        }
                                     }
                                 }
                                 Err(e) => {
