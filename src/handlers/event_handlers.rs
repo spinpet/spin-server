@@ -7,7 +7,7 @@ use serde::{Deserialize};
 use std::sync::Arc;
 use utoipa::ToSchema;
 
-use crate::models::ApiResponse;
+use crate::models::{ApiResponse, KlineQuery, KlineQueryResponse};
 use crate::services::event_storage::{EventQuery, EventQueryResponse, MintQuery, MintQueryResponse, OrderQuery, OrderQueryResponse, UserQuery, UserQueryResponse, MintDetailsQueryResponse};
 use crate::handlers::AppState;
 
