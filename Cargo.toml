@@ -40,5 +40,10 @@ rocksdb = "0.22"
 serde_with = "3.0"
 rand = "0.8"
 
+# SocketIoxide dependencies for real-time WebSocket support
+socketioxide = "0.17"
+tower = "0.5"
+futures = "0.3"
+
 [dev-dependencies]
 tempfile = "3.8"
