@@ -136,6 +136,15 @@ function connectAndSubscribe(mint) {
         console.log('❌ 错误消息:', JSON.stringify(error, null, 2));
     });
 
+    // 监听直接测试事件
+    socket.on('direct_kline_test', (data) => {
+        console.log('🧪 收到直接测试消息:', {
+            interval: data.interval,
+            symbol: data.symbol,
+            timestamp: new Date(data.timestamp).toISOString()
+        });
+    });
+
     // 捕获所有事件
     socket.onAny((eventName, ...args) => {
         console.log(`🎯 收到事件: ${eventName}`, {
