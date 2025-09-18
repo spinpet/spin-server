@@ -566,7 +566,7 @@ impl EventStorage {
             let kline_key = self.generate_kline_key(interval, mint_account, time_bucket);
             
             // Try to get existing kline data
-            let mut kline_data = match self.db.get(kline_key.as_bytes())? {
+            let kline_data = match self.db.get(kline_key.as_bytes())? {
                 Some(data) => {
                     match serde_json::from_slice::<KlineData>(&data) {
                         Ok(mut existing_kline) => {
