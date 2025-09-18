@@ -275,7 +275,14 @@ impl KlineSocketService {
         let event_storage = Arc::clone(&self.event_storage);
         let _config = self.config.clone();
         
-        // 连接建立事件
+        // 设置默认命名空间（避免default namespace not found错误）
+        self.socketio.ns("/", |_socket: SocketRef| {
+            tokio::spawn(async move {
+                // 默认命名空间不做任何处理，只是为了避免错误
+            });
+        });
+        
+        // 连接建立事件 - K线命名空间
         self.socketio.ns("/kline", {
             let subscriptions = subscriptions.clone();
             move |socket: SocketRef| {
