@@ -153,6 +153,31 @@ impl EventService {
             config: config.solana.clone(),
         })
     }
+    
+    /// Create a new event service with custom event handler and shared storage
+    pub fn with_handler_and_storage(
+        config: &crate::config::Config, 
+        event_handler: Arc<dyn EventHandler>,
+        event_storage: Arc<EventStorage>
+    ) -> anyhow::Result<Self> {
+        let client = Arc::new(SolanaClient::new(&config.solana.rpc_url, &config.solana.program_id)?);
+        let mut listener_manager = EventListenerManager::new();
+        
+        // Initialize listener
+        listener_manager.initialize(
+            config.solana.clone(),
+            Arc::clone(&client),
+            Arc::clone(&event_handler),
+        )?;
+
+        Ok(Self {
+            client,
+            listener_manager,
+            event_handler,
+            event_storage,
+            config: config.solana.clone(),
+        })
+    }
 
     /// Start event service
     pub async fn start(&mut self) -> anyhow::Result<()> {
