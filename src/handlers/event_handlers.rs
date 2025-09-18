@@ -94,7 +94,7 @@ pub struct UserOrderQueryParams {
 pub struct KlineQueryParams {
     /// Token address
     pub mint: String,
-    /// Time interval: "s1" (1 second), "m1" (1 minute), "m5" (5 minutes)
+    /// Time interval: "s1" (1 second), "s30" (30 seconds), "m5" (5 minutes)
     pub interval: String,
     /// Page number (starts from 1)
     pub page: Option<usize>,
