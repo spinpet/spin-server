@@ -5,9 +5,9 @@ function calculateTimeBucket(timestamp, interval) {
     switch (interval) {
         case 's1':
             return timestamp; // 1-second intervals - no alignment needed
-        case 'm1':
-            // 1-minute intervals - align to minute boundary
-            return Math.floor(timestamp / 60) * 60;
+        case 's30':
+            // 30-second intervals - align to 30-second boundary
+            return Math.floor(timestamp / 30) * 30;
         case 'm5':
             // 5-minute intervals - align to 5-minute boundary
             return Math.floor(timestamp / 300) * 300;
