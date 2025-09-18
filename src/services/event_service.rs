@@ -181,8 +181,23 @@ impl EventService {
 
     /// Get service status
     pub async fn get_status(&self) -> EventServiceStatus {
-        let stats = self.event_handler.get_stats().await;
-        let last_event_time = self.event_handler.get_last_event_time().await;
+        // Try to downcast to StatsEventHandler to get stats
+        let (stats, last_event_time) = if let Some(stats_handler) = 
+            self.event_handler.as_any().downcast_ref::<StatsEventHandler>() {
+            (stats_handler.get_stats().await, stats_handler.get_last_event_time().await)
+        } else {
+            // If not a StatsEventHandler, use default values
+            (EventStats {
+                token_created: 0,
+                buy_sell: 0,
+                long_short: 0,
+                force_liquidate: 0,
+                full_close: 0,
+                partial_close: 0,
+                milestone_discount: 0,
+                total: 0,
+            }, None)
+        };
         
         let connection_status = match self.client.check_connection().await {
             Ok(true) => "Connected".to_string(),
@@ -201,7 +216,23 @@ impl EventService {
 
     /// Get event statistics
     pub async fn get_stats(&self) -> EventStats {
-        self.event_handler.get_stats().await
+        // Try to downcast to StatsEventHandler to get stats
+        if let Some(stats_handler) = 
+            self.event_handler.as_any().downcast_ref::<StatsEventHandler>() {
+            stats_handler.get_stats().await
+        } else {
+            // If not a StatsEventHandler, use default values
+            EventStats {
+                token_created: 0,
+                buy_sell: 0,
+                long_short: 0,
+                force_liquidate: 0,
+                full_close: 0,
+                partial_close: 0,
+                milestone_discount: 0,
+                total: 0,
+            }
+        }
     }
 
     #[allow(dead_code)]
