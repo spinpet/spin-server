@@ -747,3 +747,9 @@ impl EventHandler for KlineEventHandler {
         self
     }
 }
+
+// 包含测试模块
+#[cfg(test)]
+mod tests;
+#[cfg(test)]
+pub use tests::*;
