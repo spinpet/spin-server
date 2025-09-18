@@ -405,6 +405,33 @@ impl EventStorage {
         format!("uo:{}:{}:{}", user, mint, order_pda)
     }
 
+    /// Generate kline key
+    /// Format: {interval}:{mint_account}:{timestamp_padded}
+    fn generate_kline_key(&self, interval: &str, mint_account: &str, timestamp: u64) -> String {
+        format!("{}:{}:{:020}", interval, mint_account, timestamp)
+    }
+
+    /// Convert u128 price to f64 with 28-bit precision handling
+    fn convert_price_to_f64(&self, price_u128: u128) -> f64 {
+        // Convert u128 to f64 with precision handling
+        // Since u128 has 28 decimal places, we divide by 10^28
+        // But f64 has limited precision, so we might lose some accuracy
+        let price_f64 = price_u128 as f64 / PRICE_PRECISION as f64;
+        
+        // Round to reasonable precision (e.g., 12 decimal places) to avoid floating point noise
+        (price_f64 * 1e12).round() / 1e12
+    }
+
+    /// Calculate time bucket for different intervals
+    fn calculate_time_bucket(&self, timestamp: u64, interval: &str) -> u64 {
+        match interval {
+            KLINE_INTERVAL_1S => timestamp, // 1-second intervals
+            KLINE_INTERVAL_1M => timestamp / 60, // 1-minute intervals
+            KLINE_INTERVAL_5M => timestamp / 300, // 5-minute intervals (300 seconds)
+            _ => timestamp, // default to 1-second
+        }
+    }
+
     /// Get order by PDA for user order operations
     async fn get_order_by_pda(&self, mint_account: &str, order_type: u8, order_pda: &str) -> Result<Option<OrderData>> {
         let order_key = self.generate_order_key(mint_account, order_type, order_pda);
