@@ -273,7 +273,7 @@ impl KlineSocketService {
     pub fn setup_socket_handlers(&self) {
         let subscriptions = Arc::clone(&self.subscriptions);
         let event_storage = Arc::clone(&self.event_storage);
-        let config = self.config.clone();
+        let _config = self.config.clone();
         
         // 连接建立事件
         self.socketio.ns("/", {
