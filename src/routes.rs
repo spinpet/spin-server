@@ -27,6 +27,7 @@ use crate::config::Config;
         handlers::query_user_orders,
         handlers::test_ipfs_functionality,
         handlers::query_mint_details,
+        handlers::query_kline_data,
     ),
     components(
         schemas(
