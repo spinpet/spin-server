@@ -135,6 +135,15 @@ function connectAndSubscribe(mint) {
     socket.on('error', (error) => {
         console.log('❌ 错误消息:', JSON.stringify(error, null, 2));
     });
+
+    // 捕获所有事件
+    socket.onAny((eventName, ...args) => {
+        console.log(`🎯 收到事件: ${eventName}`, {
+            eventName,
+            argsCount: args.length,
+            firstArg: args[0] ? JSON.stringify(args[0]).substring(0, 200) + '...' : 'no args'
+        });
+    });
 }
 
 // 订阅 K线数据
