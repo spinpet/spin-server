@@ -27,6 +27,9 @@ pub trait EventListener {
 #[async_trait]
 pub trait EventHandler: Send + Sync {
     async fn handle_event(&self, event: SpinPetEvent) -> anyhow::Result<()>;
+    
+    /// Downcast support for trait objects
+    fn as_any(&self) -> &dyn std::any::Any;
 }
 
 /// Default event handler - simply print events
