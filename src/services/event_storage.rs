@@ -1009,6 +1009,33 @@ impl EventStorage {
              debug!("💾 User transaction recorded successfully, key: {}", user_key);
          }
 
+         // Process kline data for price events
+         match &event {
+             SpinPetEvent::BuySell(e) => {
+                 if let Err(err) = self.process_kline_data(&e.mint_account, e.latest_price, e.timestamp).await {
+                     error!("❌ Failed to process kline data for BuySell event: {}", err);
+                 }
+             }
+             SpinPetEvent::LongShort(e) => {
+                 if let Err(err) = self.process_kline_data(&e.mint_account, e.latest_price, e.timestamp).await {
+                     error!("❌ Failed to process kline data for LongShort event: {}", err);
+                 }
+             }
+             SpinPetEvent::FullClose(e) => {
+                 if let Err(err) = self.process_kline_data(&e.mint_account, e.latest_price, e.timestamp).await {
+                     error!("❌ Failed to process kline data for FullClose event: {}", err);
+                 }
+             }
+             SpinPetEvent::PartialClose(e) => {
+                 if let Err(err) = self.process_kline_data(&e.mint_account, e.latest_price, e.timestamp).await {
+                     error!("❌ Failed to process kline data for PartialClose event: {}", err);
+                 }
+             }
+             _ => {
+                 // Other events don't have latest_price, so no kline processing needed
+             }
+         }
+
          // Process mint detail data
          self.process_event_for_mint_detail(&event).await?;
          
