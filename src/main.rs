@@ -154,6 +154,7 @@ async fn main() {
     let app_state = Arc::new(AppState {
         event_service: Arc::clone(&event_service),
         event_storage,
+        kline_service: kline_socket_service.clone(),
     });
 
     // Create router with optional SocketIO layer
