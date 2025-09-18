@@ -7,7 +7,7 @@ const { io } = require('socket.io-client');
 
 // 配置
 const SERVER_URL = 'http://localhost:5051';
-const TEST_MINT = 'HVdvwBKxvfsf4hv5FgGxtDx8EhKDhyUUCzmSZHiDeRqw'; // 测试用的 mint 地址
+const TEST_MINT = 'J8DLHg9RjKb1rCg5nX4SbJ1pefk5XtvxNmN71keLHEHe'; // 测试用的 mint 地址
 const INTERVAL = 's30';
 
 console.log('🚀 启动 S30 K线持续监听...');
