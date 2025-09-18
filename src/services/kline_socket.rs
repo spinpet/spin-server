@@ -564,6 +564,56 @@ impl KlineSocketService {
             }
         })
     }
+    
+    /// 获取详细的订阅状态和通讯统计
+    pub async fn get_subscription_details(&self) -> serde_json::Value {
+        let manager = self.subscriptions.read().await;
+        let now = Instant::now();
+        
+        let mut client_details = Vec::new();
+        
+        for (socket_id, client) in &manager.connections {
+            let subscriptions: Vec<String> = client.subscriptions.iter().cloned().collect();
+            let connection_duration = now.duration_since(client.connection_time).as_secs();
+            let last_activity_ago = now.duration_since(client.last_activity).as_secs();
+            
+            client_details.push(serde_json::json!({
+                "socket_id": socket_id,
+                "subscriptions": subscriptions,
+                "subscription_count": client.subscription_count,
+                "connection_duration_seconds": connection_duration,
+                "last_activity_seconds_ago": last_activity_ago,
+                "message_stats": {
+                    "kline_data_sent": client.kline_data_sent_count,
+                    "history_data_sent": client.history_data_sent_count,
+                    "total_messages_sent": client.total_messages_sent
+                }
+            }));
+        }
+        
+        let mut room_details = Vec::new();
+        
+        for (mint, intervals) in &manager.mint_subscribers {
+            for (interval, subscribers) in intervals {
+                let room_name = format!("kline:{}:{}", mint, interval);
+                room_details.push(serde_json::json!({
+                    "room_name": room_name,
+                    "mint": mint,
+                    "interval": interval,
+                    "subscriber_count": subscribers.len(),
+                    "subscribers": subscribers.iter().cloned().collect::<Vec<String>>()
+                }));
+            }
+        }
+        
+        serde_json::json!({
+            "timestamp": chrono::Utc::now().timestamp(),
+            "total_connections": manager.connections.len(),
+            "total_rooms": room_details.len(),
+            "clients": client_details,
+            "rooms": room_details
+        })
+    }
 }
 
 /// 验证订阅请求
