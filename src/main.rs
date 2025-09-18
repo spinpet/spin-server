@@ -89,8 +89,8 @@ async fn main() {
                 Arc::clone(kline_service)
             ));
             
-            // 使用自定义事件处理器创建事件服务
-            match EventService::with_handler(&config, Arc::clone(&kline_handler) as Arc<dyn crate::solana::EventHandler>) {
+            // 使用自定义事件处理器和共享存储创建事件服务
+            match EventService::with_handler_and_storage(&config, Arc::clone(&kline_handler) as Arc<dyn crate::solana::EventHandler>, Arc::clone(&shared_event_storage)) {
                 Ok(service) => Arc::new(tokio::sync::RwLock::new(service)),
                 Err(e) => {
                     error!("❌ Failed to initialize event service with K-line handler: {}", e);
