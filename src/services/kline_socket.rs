@@ -305,7 +305,7 @@ impl KlineSocketService {
                         "supported_intervals": ["s1", "s30", "m5"]
                     });
                     
-                    if let Err(e) = socket.emit("connection_success", welcome_msg) {
+                    if let Err(e) = socket.emit("connection_success", &welcome_msg) {
                         warn!("Failed to send welcome message: {}", e);
                     }
                 });
