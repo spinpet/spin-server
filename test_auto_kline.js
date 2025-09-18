@@ -105,6 +105,14 @@ function connectAndSubscribe(mint) {
     });
 
     socket.on('kline_data', (data) => {
+        console.log(`🔔 收到K线数据 (原始):`, {
+            interval: data.interval,
+            expected: INTERVAL,
+            symbol: data.symbol,
+            timestamp: data.timestamp,
+            dataSize: JSON.stringify(data).length
+        });
+        
         if (data.interval === INTERVAL) {
             const klineTime = new Date(data.data.time * 1000);
             console.log(`📊 实时K线更新:`, {
@@ -119,6 +127,8 @@ function connectAndSubscribe(mint) {
                 更新次数: data.data.update_count,
                 接收时间: new Date(data.timestamp).toISOString()
             });
+        } else {
+            console.log(`⚠️ 收到其他间隔的K线数据: ${data.interval}, 期望: ${INTERVAL}`);
         }
     });
 
