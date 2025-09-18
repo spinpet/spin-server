@@ -563,4 +563,40 @@ pub async fn query_kline_data(
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
+}
+
+/// Get K-line subscription details and communication statistics
+#[utoipa::path(
+    get,
+    path = "/api/kline/subscriptions",
+    responses(
+        (status = 200, description = "Subscription details retrieved successfully", body = serde_json::Value),
+        (status = 500, description = "Internal server error")
+    ),
+    summary = "Get K-line subscription details",
+    description = "Returns detailed information about active WebSocket connections, subscriptions, and communication statistics"
+)]
+pub async fn get_kline_subscriptions(
+    State(app_state): State<Arc<AppState>>,
+) -> Result<Json<ApiResponse<serde_json::Value>>, StatusCode> {
+    info!("Getting K-line subscription details");
+    
+    // 检查 K-line 服务是否在运行
+    match &app_state.kline_service {
+        Some(kline_service) => {
+            let details = kline_service.get_subscription_details().await;
+            Ok(Json(ApiResponse::success(details)))
+        }
+        None => {
+            let empty_response = serde_json::json!({
+                "timestamp": chrono::Utc::now().timestamp(),
+                "total_connections": 0,
+                "total_rooms": 0,
+                "clients": [],
+                "rooms": [],
+                "message": "K-line service is not enabled"
+            });
+            Ok(Json(ApiResponse::success(empty_response)))
+        }
+    }
 } 
