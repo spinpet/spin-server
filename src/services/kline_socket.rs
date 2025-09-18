@@ -40,6 +40,18 @@ impl Default for KlineConfig {
     }
 }
 
+impl KlineConfig {
+    pub fn from_config(config: &crate::config::KlineServiceConfig) -> Self {
+        Self {
+            connection_timeout: Duration::from_secs(config.connection_timeout_secs),
+            max_subscriptions_per_client: config.max_subscriptions_per_client,
+            history_data_limit: config.history_data_limit,
+            ping_interval: Duration::from_secs(config.ping_interval_secs),
+            ping_timeout: Duration::from_secs(config.ping_timeout_secs),
+        }
+    }
+}
+
 /// 客户端连接信息
 #[derive(Debug, Clone)]
 pub struct ClientConnection {
