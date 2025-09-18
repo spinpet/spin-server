@@ -70,7 +70,8 @@ use crate::config::Config;
         (name = "events", description = "Event monitoring APIs"),
         (name = "mints", description = "Mint query APIs"),
         (name = "orders", description = "Order query APIs"),
-        (name = "user", description = "User transaction query APIs")
+        (name = "user", description = "User transaction query APIs"),
+        (name = "kline", description = "Kline data query APIs")
     ),
     info(
         title = "Spin API Service",
