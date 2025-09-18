@@ -497,4 +497,69 @@ pub struct TestIpfsParams {
     pub name: Option<String>,
     pub symbol: Option<String>,
     pub payer: Option<String>,
+}
+
+/// Query kline data
+#[utoipa::path(
+    get,
+    path = "/api/kline",
+    params(KlineQueryParams),
+    responses(
+        (status = 200, description = "Query successful", body = KlineQueryResponse),
+        (status = 400, description = "Bad request"),
+        (status = 500, description = "Internal server error")
+    ),
+    tags = ["kline"]
+)]
+pub async fn query_kline_data(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<KlineQueryParams>,
+) -> Result<Json<ApiResponse<KlineQueryResponse>>, StatusCode> {
+    // Validate parameters
+    if params.mint.is_empty() {
+        return Ok(Json(ApiResponse::error("mint parameter cannot be empty")));
+    }
+
+    if !matches!(params.interval.as_str(), "s1" | "m1" | "m5") {
+        return Ok(Json(ApiResponse::error("interval parameter must be one of: s1, m1, m5")));
+    }
+
+    let limit = params.limit.unwrap_or(50);
+    if limit > 1000 {
+        return Ok(Json(ApiResponse::error("limit cannot exceed 1000")));
+    }
+
+    let page = params.page.unwrap_or(1);
+    if page < 1 {
+        return Ok(Json(ApiResponse::error("page must be greater than 0")));
+    }
+
+    // Validate order_by parameter
+    if let Some(ref order_by) = params.order_by {
+        if !matches!(order_by.as_str(), "time_asc" | "time_desc") {
+            return Ok(Json(ApiResponse::error("order_by must be 'time_asc' or 'time_desc'")));
+        }
+    }
+
+    // Build query
+    let query = KlineQuery {
+        mint_account: params.mint,
+        interval: params.interval,
+        page: Some(page),
+        limit: Some(limit),
+        order_by: params.order_by,
+    };
+
+    // Execute query
+    match state.event_storage.query_kline_data(query).await {
+        Ok(response) => {
+            tracing::info!("Kline query: found {} klines for mint {} interval {}", 
+                response.klines.len(), response.mint_account, response.interval);
+            Ok(Json(ApiResponse::success(response)))
+        }
+        Err(e) => {
+            tracing::error!("Failed to query kline data: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
 } 
