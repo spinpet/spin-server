@@ -428,7 +428,7 @@ impl KlineSocketService {
                             }
                         }
                         Err(e) => {
-                            let _ = socket.emit("error", serde_json::json!({
+                            let _ = socket.emit("error", &serde_json::json!({
                                 "code": 1003,
                                 "message": e.to_string()
                             }));
