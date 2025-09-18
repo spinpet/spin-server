@@ -390,12 +390,10 @@ impl KlineSocketService {
                     
                     // 离开对应的房间
                     let room_name = format!("kline:{}:{}", data.symbol, data.interval);
-                    if let Err(e) = socket.leave(room_name) {
-                        warn!("Failed to leave room: {}", e);
-                    }
+                    socket.leave(room_name);
                     
                     // 确认取消订阅
-                    let _ = socket.emit("unsubscribe_confirmed", serde_json::json!({
+                    let _ = socket.emit("unsubscribe_confirmed", &serde_json::json!({
                         "symbol": data.symbol,
                         "interval": data.interval,
                         "subscription_id": data.subscription_id,
