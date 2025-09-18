@@ -10,6 +10,7 @@ use utoipa::ToSchema;
 use crate::models::{ApiResponse, KlineQuery, KlineQueryResponse};
 use crate::services::event_storage::{EventQuery, EventQueryResponse, MintQuery, MintQueryResponse, OrderQuery, OrderQueryResponse, UserQuery, UserQueryResponse, MintDetailsQueryResponse};
 use crate::handlers::AppState;
+use tracing::info;
 
 /// Event query parameters
 #[derive(Debug, Deserialize, ToSchema, utoipa::IntoParams)]
