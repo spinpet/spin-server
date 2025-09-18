@@ -10,6 +10,7 @@ use tokio::time::sleep;
 
 use crate::solana::events::*;
 use crate::config::{DatabaseConfig, Config};
+use crate::models::{KlineData, KlineQuery, KlineQueryResponse};
 
 /// Event type constants - used for key generation (2 characters to save space)
 pub const EVENT_TYPE_TOKEN_CREATED: &str = "tc";
