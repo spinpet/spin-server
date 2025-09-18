@@ -287,13 +287,17 @@ impl KlineSocketService {
             move |socket: SocketRef| {
                 info!("🔌 New client connected to /kline: {}", socket.id);
                 
-                // 注册客户端连接并发送欢迎消息
+                // 保存 socket_id 用于后续使用
+                let socket_id = socket.id.to_string();
+                
+                // 注册客户端连接
                 {
                     let subscriptions = subscriptions.clone();
+                    let socket_id_clone = socket_id.clone();
                     tokio::spawn(async move {
                         let mut manager = subscriptions.write().await;
-                        manager.connections.insert(socket.id.to_string(), ClientConnection {
-                            socket_id: socket.id.to_string(),
+                        manager.connections.insert(socket_id_clone.clone(), ClientConnection {
+                            socket_id: socket_id_clone,
                             subscriptions: HashSet::new(),
                             last_activity: Instant::now(),
                             connection_time: Instant::now(),
@@ -305,7 +309,7 @@ impl KlineSocketService {
                 
                 // 发送连接成功消息
                 let welcome_msg = serde_json::json!({
-                    "client_id": socket.id.to_string(),
+                    "client_id": socket_id,
                     "server_time": Utc::now().timestamp(),
                     "supported_symbols": [], 
                     "supported_intervals": ["s1", "s30", "m5"]
