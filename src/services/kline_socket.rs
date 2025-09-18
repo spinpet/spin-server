@@ -372,7 +372,7 @@ impl KlineSocketService {
         });
         
         // 取消订阅事件
-        self.socketio.ns("/", {
+        self.socketio.ns("/kline", {
             let subscriptions = subscriptions.clone();
             
             move |socket: SocketRef, Data(data): Data<UnsubscribeRequest>| {
