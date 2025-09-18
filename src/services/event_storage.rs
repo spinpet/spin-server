@@ -1524,6 +1524,89 @@ impl EventStorage {
         })
     }
 
+    /// Query kline data
+    pub async fn query_kline_data(&self, query: KlineQuery) -> Result<KlineQueryResponse> {
+        let mint_account = &query.mint_account;
+        let interval = &query.interval;
+        let page = query.page.unwrap_or(1);
+        let limit = query.limit.unwrap_or(50);
+        let order_by = query.order_by.unwrap_or_else(|| "time_desc".to_string());
+        
+        // Validate interval
+        if !matches!(interval.as_str(), "s1" | "m1" | "m5") {
+            return Err(anyhow::anyhow!("Invalid interval: {}, must be one of: s1, m1, m5", interval));
+        }
+        
+        debug!("🔍 Querying kline data, mint: {}, interval: {}, page: {}, limit: {}, order: {}", 
+               mint_account, interval, page, limit, order_by);
+        
+        // Build prefix key for the specific mint and interval
+        let prefix = format!("{}:{}:", interval, mint_account);
+        
+        // Collect all matching kline data
+        let mut all_klines = Vec::new();
+        
+        let iter = self.db.iterator(IteratorMode::From(prefix.as_bytes(), Direction::Forward));
+        
+        for item in iter {
+            let (key, value) = item?;
+            let key_str = String::from_utf8_lossy(&key);
+            
+            // Check if still matches prefix
+            if !key_str.starts_with(&prefix) {
+                break;
+            }
+            
+            // Parse kline data
+            match serde_json::from_slice::<KlineData>(&value) {
+                Ok(kline_data) => all_klines.push(kline_data),
+                Err(e) => {
+                    error!("❌ Failed to parse kline data: {}, key: {}", e, key_str);
+                    continue;
+                }
+            }
+        }
+        
+        // Sort by time
+        match order_by.as_str() {
+            "time_asc" => {
+                all_klines.sort_by(|a, b| a.time.cmp(&b.time));
+            }
+            "time_desc" => {
+                all_klines.sort_by(|a, b| b.time.cmp(&a.time));
+            }
+            _ => {
+                // Default sort by time descending (newest first)
+                all_klines.sort_by(|a, b| b.time.cmp(&a.time));
+            }
+        }
+        
+        let total = all_klines.len();
+        let offset = (page - 1) * limit;
+        let has_prev = page > 1;
+        let has_next = offset + limit < total;
+        
+        // Pagination
+        let klines = all_klines
+            .into_iter()
+            .skip(offset)
+            .take(limit)
+            .collect::<Vec<_>>();
+        
+        debug!("🔍 Retrieved {} klines for mint: {}, interval: {}", klines.len(), mint_account, interval);
+        
+        Ok(KlineQueryResponse {
+            klines,
+            total,
+            page,
+            limit,
+            has_next,
+            has_prev,
+            interval: interval.clone(),
+            mint_account: mint_account.clone(),
+        })
+    }
+
     /// Get database statistics
     pub fn get_stats(&self) -> Result<String> {
         let stats = self.db.property_value("rocksdb.stats")?;
