@@ -110,7 +110,7 @@ impl EventHandler for StatsEventHandler {
 pub struct EventService {
     client: Arc<SolanaClient>,
     listener_manager: EventListenerManager,
-    event_handler: Arc<StatsEventHandler>,
+    event_handler: Arc<dyn EventHandler>,
     event_storage: Arc<EventStorage>,
     config: SolanaConfig,
 }
