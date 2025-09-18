@@ -108,6 +108,10 @@ impl EventHandler for DefaultEventHandler {
         }
         Ok(())
     }
+    
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
