@@ -4,7 +4,7 @@
 
 Spin Server is a Rust-based server application designed to monitor and process Spin Pet program events on the Solana blockchain, providing related API services. The project integrates Solana blockchain data, uses RocksDB for local data storage, and provides data access interfaces for frontend applications through RESTful APIs.
 
-## Core Features
+## Core Features 
 
 - **Solana Event Monitoring**: Real-time monitoring of Spin Pet program events on the Solana blockchain
 - **Event Data Storage**: Efficient storage and indexing of blockchain event data using RocksDB
