@@ -18,7 +18,7 @@ program_id = "JBMmrp6jhksqnxDBskkmVvWHhJLaPBjgiMHEroJbUTBZ"
 # Event listener configuration
 enable_event_listener = true
 commitment = "processed"  # processed/confirmed/finalized
-reconnect_interval = 1  # Reconnect interval in seconds (快速重连)
+reconnect_interval = 1  # Reconnect interval in seconds (fast reconnection)
 max_reconnect_attempts = 20
 # Event processing configuration
 event_buffer_size = 1000
@@ -39,15 +39,15 @@ max_retries = 3
 retry_delay_seconds = 5
 
 [kline]
-# K线实时推送服务配置
+# K-line real-time push service configuration
 enable_kline_service = true
-# 连接超时时间（秒）
+# Connection timeout (seconds)
 connection_timeout_secs = 60
-# 每客户端最大订阅数
+# Maximum subscriptions per client
 max_subscriptions_per_client = 100
-# 历史数据默认条数
+# Default number of historical data points
 history_data_limit = 100
-# 心跳间隔（秒）
+# Heartbeat interval (seconds)
 ping_interval_secs = 25
-# 心跳超时（秒）
+# Heartbeat timeout (seconds)
 ping_timeout_secs = 60 
