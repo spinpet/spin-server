@@ -28,3 +28,9 @@ ping_interval_seconds = 60
 
 [database]
 rocksdb_path = "./data/devnet_rocksdb" 
+
+[ipfs]
+gateway_url = "https://crimson-binding-tarantula-509.mypinata.cloud/ipfs/"
+request_timeout_seconds = 30
+max_retries = 3
+retry_delay_seconds = 5 

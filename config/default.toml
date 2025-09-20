@@ -1,6 +1,6 @@
 [server]
 host = "0.0.0.0"
-port = 8080
+port = 5051
 
 [cors]
 enabled = true
@@ -18,13 +18,36 @@ program_id = "JBMmrp6jhksqnxDBskkmVvWHhJLaPBjgiMHEroJbUTBZ"
 # Event listener configuration
 enable_event_listener = true
 commitment = "processed"  # processed/confirmed/finalized
-reconnect_interval = 1  # Reconnect interval in seconds (快速重连)
+reconnect_interval = 1  # Reconnect interval in seconds (fast reconnection)
 max_reconnect_attempts = 20
 # Event processing configuration
 event_buffer_size = 1000
 event_batch_size = 100
-# WebSocket ping interval in seconds (default: 60)
-ping_interval_seconds = 60
+# WebSocket ping interval in seconds (default: 15 for faster connection monitoring)
+ping_interval_seconds = 15
+# Whether to process failed transactions for development/testing (default: false)
+# Set to true in development to get more K-line data points
+process_failed_transactions = true
 
 [database]
-rocksdb_path = "./data/rocksdb" 
+rocksdb_path = "./data/rocksdb"
+
+[ipfs]
+gateway_url = "https://crimson-binding-tarantula-509.mypinata.cloud/ipfs/"
+request_timeout_seconds = 30
+max_retries = 3
+retry_delay_seconds = 5
+
+[kline]
+# K-line real-time push service configuration
+enable_kline_service = true
+# Connection timeout (seconds)
+connection_timeout_secs = 60
+# Maximum subscriptions per client
+max_subscriptions_per_client = 100
+# Default number of historical data points
+history_data_limit = 100
+# Heartbeat interval (seconds)
+ping_interval_secs = 25
+# Heartbeat timeout (seconds)
+ping_timeout_secs = 60 

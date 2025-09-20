@@ -7,9 +7,10 @@ use serde::{Deserialize};
 use std::sync::Arc;
 use utoipa::ToSchema;
 
-use crate::models::ApiResponse;
+use crate::models::{ApiResponse, KlineQuery, KlineQueryResponse};
 use crate::services::event_storage::{EventQuery, EventQueryResponse, MintQuery, MintQueryResponse, OrderQuery, OrderQueryResponse, UserQuery, UserQueryResponse, MintDetailsQueryResponse};
 use crate::handlers::AppState;
+use tracing::info;
 
 /// Event query parameters
 #[derive(Debug, Deserialize, ToSchema, utoipa::IntoParams)]
@@ -86,6 +87,21 @@ pub struct UserOrderQueryParams {
     /// Items per page (maximum 1000)
     pub limit: Option<usize>,
     /// Sort order: "start_time_asc" or "start_time_desc"
+    pub order_by: Option<String>,
+}
+
+/// Kline query parameters
+#[derive(Debug, Deserialize, ToSchema, utoipa::IntoParams)]
+pub struct KlineQueryParams {
+    /// Token address
+    pub mint: String,
+    /// Time interval: "s1" (1 second), "s30" (30 seconds), "m5" (5 minutes)
+    pub interval: String,
+    /// Page number (starts from 1)
+    pub page: Option<usize>,
+    /// Items per page (maximum 1000)
+    pub limit: Option<usize>,
+    /// Sort order: "time_asc" (oldest first) or "time_desc" (newest first, default)
     pub order_by: Option<String>,
 }
 
@@ -417,6 +433,170 @@ pub async fn get_db_stats(
         Err(e) => {
             tracing::error!("Failed to get database statistics: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+/// Test IPFS functionality - Create a test token with URI
+#[utoipa::path(
+    post,
+    path = "/api/test-ipfs",
+    request_body = TestIpfsParams,
+    responses(
+        (status = 200, description = "Test token created and IPFS fetch triggered", body = ApiResponse<String>),
+        (status = 500, description = "Internal server error"),
+    ),
+    tags = ["test"]
+)]
+pub async fn test_ipfs_functionality(
+    State(state): State<Arc<AppState>>,
+    Json(params): Json<TestIpfsParams>,
+) -> Result<Json<ApiResponse<String>>, StatusCode> {
+    use crate::solana::events::*;
+    use chrono::Utc;
+
+    // Create a fake TokenCreated event with the provided URI
+    let fake_event = SpinPetEvent::TokenCreated(TokenCreatedEvent {
+        payer: params.payer.unwrap_or_else(|| "test_payer".to_string()),
+        mint_account: params.mint_account.clone(),
+        curve_account: "test_curve_account".to_string(),
+        pool_token_account: "test_pool_token_account".to_string(),
+        pool_sol_account: "test_pool_sol_account".to_string(),
+        fee_recipient: "test_fee_recipient".to_string(),
+        base_fee_recipient: "test_base_fee_recipient".to_string(),
+        params_account: "test_params_account".to_string(),
+        name: params.name.unwrap_or_else(|| "Test Token".to_string()),
+        symbol: params.symbol.unwrap_or_else(|| "TEST".to_string()),
+        uri: params.uri,
+        swap_fee: 100,
+        borrow_fee: 200,
+        fee_discount_flag: 0,
+        slot: 123456789,
+        timestamp: Utc::now(),
+        signature: "test_signature".to_string(),
+    });
+
+    // Process the event to trigger IPFS fetching
+    match state.event_storage.process_event_for_mint_detail(&fake_event).await {
+        Ok(_) => {
+            Ok(Json(ApiResponse::success(format!(
+                "Test token created with mint_account: {}. IPFS URI fetching triggered in background.", 
+                params.mint_account
+            ))))
+        }
+        Err(e) => {
+            tracing::error!("Failed to process test event: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct TestIpfsParams {
+    pub mint_account: String,
+    pub uri: String,
+    pub name: Option<String>,
+    pub symbol: Option<String>,
+    pub payer: Option<String>,
+}
+
+/// Query kline data
+#[utoipa::path(
+    get,
+    path = "/api/kline",
+    params(KlineQueryParams),
+    responses(
+        (status = 200, description = "Query successful", body = KlineQueryResponse),
+        (status = 400, description = "Bad request"),
+        (status = 500, description = "Internal server error")
+    ),
+    tags = ["kline"]
+)]
+pub async fn query_kline_data(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<KlineQueryParams>,
+) -> Result<Json<ApiResponse<KlineQueryResponse>>, StatusCode> {
+    // Validate parameters
+    if params.mint.is_empty() {
+        return Ok(Json(ApiResponse::error("mint parameter cannot be empty")));
+    }
+
+    if !matches!(params.interval.as_str(), "s1" | "s30" | "m5") {
+        return Ok(Json(ApiResponse::error("interval parameter must be one of: s1, s30, m5")));
+    }
+
+    let limit = params.limit.unwrap_or(50);
+    if limit > 1000 {
+        return Ok(Json(ApiResponse::error("limit cannot exceed 1000")));
+    }
+
+    let page = params.page.unwrap_or(1);
+    if page < 1 {
+        return Ok(Json(ApiResponse::error("page must be greater than 0")));
+    }
+
+    // Validate order_by parameter
+    if let Some(ref order_by) = params.order_by {
+        if !matches!(order_by.as_str(), "time_asc" | "time_desc") {
+            return Ok(Json(ApiResponse::error("order_by must be 'time_asc' or 'time_desc'")));
+        }
+    }
+
+    // Build query
+    let query = KlineQuery {
+        mint_account: params.mint,
+        interval: params.interval,
+        page: Some(page),
+        limit: Some(limit),
+        order_by: params.order_by,
+    };
+
+    // Execute query
+    match state.event_storage.query_kline_data(query).await {
+        Ok(response) => {
+            tracing::info!("Kline query: found {} klines for mint {} interval {}", 
+                response.klines.len(), response.mint_account, response.interval);
+            Ok(Json(ApiResponse::success(response)))
+        }
+        Err(e) => {
+            tracing::error!("Failed to query kline data: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+/// Get K-line subscription details and communication statistics
+#[utoipa::path(
+    get,
+    path = "/api/kline/subscriptions",
+    responses(
+        (status = 200, description = "Subscription details retrieved successfully", body = serde_json::Value),
+        (status = 500, description = "Internal server error")
+    ),
+    summary = "Get K-line subscription details",
+    description = "Returns detailed information about active WebSocket connections, subscriptions, and communication statistics"
+)]
+pub async fn get_kline_subscriptions(
+    State(app_state): State<Arc<AppState>>,
+) -> Result<Json<ApiResponse<serde_json::Value>>, StatusCode> {
+    info!("Getting K-line subscription details");
+    
+    // 检查 K-line 服务是否在运行
+    match &app_state.kline_service {
+        Some(kline_service) => {
+            let details = kline_service.get_subscription_details().await;
+            Ok(Json(ApiResponse::success(details)))
+        }
+        None => {
+            let empty_response = serde_json::json!({
+                "timestamp": chrono::Utc::now().timestamp(),
+                "total_connections": 0,
+                "total_rooms": 0,
+                "clients": [],
+                "rooms": [],
+                "message": "K-line service is not enabled"
+            });
+            Ok(Json(ApiResponse::success(empty_response)))
         }
     }
 } 

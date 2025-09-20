@@ -7,12 +7,13 @@ use tracing::info;
 use std::sync::Arc;
 
 use crate::models::*;
-use crate::services::{EventService, EventStorage};
+use crate::services::{EventService, EventStorage, KlineSocketService};
 
 /// Application state
 pub struct AppState {
     pub event_service: Arc<tokio::sync::RwLock<EventService>>,
     pub event_storage: Arc<EventStorage>,
+    pub kline_service: Option<Arc<KlineSocketService>>,
 }
 
 /// Get current time
@@ -80,6 +81,40 @@ pub async fn get_event_stats(
     
     info!("Event statistics query: total_events={}", stats.total);
     ResponseJson(ApiResponse::success(stats))
+}
+
+/// Get K-line service status
+#[utoipa::path(
+    get,
+    path = "/api/kline/status",
+    responses(
+        (status = 200, description = "Successfully returned K-line service status", body = serde_json::Value)
+    ),
+    tag = "kline"
+)]
+pub async fn get_kline_status(
+    State(state): State<Arc<AppState>>,
+) -> ResponseJson<ApiResponse<serde_json::Value>> {
+    match &state.kline_service {
+        Some(kline_service) => {
+            let stats = kline_service.get_service_stats().await;
+            let status = serde_json::json!({
+                "enabled": true,
+                "service_status": "running",
+                "stats": stats
+            });
+            info!("K-line service status query completed");
+            ResponseJson(ApiResponse::success(status))
+        }
+        None => {
+            let status = serde_json::json!({
+                "enabled": false,
+                "service_status": "disabled",
+                "message": "K-line service is not enabled"
+            });
+            ResponseJson(ApiResponse::success(status))
+        }
+    }
 }
 
 pub mod event_handlers;

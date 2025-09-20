@@ -104,30 +104,45 @@ impl EventHandler for StatsEventHandler {
 
         Ok(())
     }
+    
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 /// Event service manager
 pub struct EventService {
     client: Arc<SolanaClient>,
     listener_manager: EventListenerManager,
-    event_handler: Arc<StatsEventHandler>,
+    event_handler: Arc<dyn EventHandler>,
     event_storage: Arc<EventStorage>,
     config: SolanaConfig,
 }
 
 impl EventService {
-    /// Create a new event service
-    pub fn new(config: SolanaConfig, database_config: DatabaseConfig) -> anyhow::Result<Self> {
-        let client = Arc::new(SolanaClient::new(&config.rpc_url, &config.program_id)?);
-        let event_storage = Arc::new(EventStorage::new(&database_config)?);
+    /// Create a new event service with default StatsEventHandler
+    pub fn new(config: &crate::config::Config) -> anyhow::Result<Self> {
+        let client = Arc::new(SolanaClient::new(&config.solana.rpc_url, &config.solana.program_id)?);
+        let event_storage = Arc::new(EventStorage::new(config)?);
         let event_handler = Arc::new(StatsEventHandler::new(Arc::clone(&event_storage)));
+        
+        Self::with_handler(config, Arc::clone(&event_handler) as Arc<dyn EventHandler>)
+    }
+    
+    /// Create a new event service with custom event handler
+    pub fn with_handler(
+        config: &crate::config::Config, 
+        event_handler: Arc<dyn EventHandler>
+    ) -> anyhow::Result<Self> {
+        let client = Arc::new(SolanaClient::new(&config.solana.rpc_url, &config.solana.program_id)?);
+        let event_storage = Arc::new(EventStorage::new(config)?);
         let mut listener_manager = EventListenerManager::new();
         
         // Initialize listener
         listener_manager.initialize(
-            config.clone(),
+            config.solana.clone(),
             Arc::clone(&client),
-            Arc::clone(&event_handler) as Arc<dyn EventHandler>,
+            Arc::clone(&event_handler),
         )?;
 
         Ok(Self {
@@ -135,7 +150,32 @@ impl EventService {
             listener_manager,
             event_handler,
             event_storage,
-            config,
+            config: config.solana.clone(),
+        })
+    }
+    
+    /// Create a new event service with custom event handler and shared storage
+    pub fn with_handler_and_storage(
+        config: &crate::config::Config, 
+        event_handler: Arc<dyn EventHandler>,
+        event_storage: Arc<EventStorage>
+    ) -> anyhow::Result<Self> {
+        let client = Arc::new(SolanaClient::new(&config.solana.rpc_url, &config.solana.program_id)?);
+        let mut listener_manager = EventListenerManager::new();
+        
+        // Initialize listener
+        listener_manager.initialize(
+            config.solana.clone(),
+            Arc::clone(&client),
+            Arc::clone(&event_handler),
+        )?;
+
+        Ok(Self {
+            client,
+            listener_manager,
+            event_handler,
+            event_storage,
+            config: config.solana.clone(),
         })
     }
 
@@ -170,8 +210,23 @@ impl EventService {
 
     /// Get service status
     pub async fn get_status(&self) -> EventServiceStatus {
-        let stats = self.event_handler.get_stats().await;
-        let last_event_time = self.event_handler.get_last_event_time().await;
+        // Try to downcast to StatsEventHandler to get stats
+        let (stats, last_event_time) = if let Some(stats_handler) = 
+            self.event_handler.as_any().downcast_ref::<StatsEventHandler>() {
+            (stats_handler.get_stats().await, stats_handler.get_last_event_time().await)
+        } else {
+            // If not a StatsEventHandler, use default values
+            (EventStats {
+                token_created: 0,
+                buy_sell: 0,
+                long_short: 0,
+                force_liquidate: 0,
+                full_close: 0,
+                partial_close: 0,
+                milestone_discount: 0,
+                total: 0,
+            }, None)
+        };
         
         let connection_status = match self.client.check_connection().await {
             Ok(true) => "Connected".to_string(),
@@ -190,7 +245,23 @@ impl EventService {
 
     /// Get event statistics
     pub async fn get_stats(&self) -> EventStats {
-        self.event_handler.get_stats().await
+        // Try to downcast to StatsEventHandler to get stats
+        if let Some(stats_handler) = 
+            self.event_handler.as_any().downcast_ref::<StatsEventHandler>() {
+            stats_handler.get_stats().await
+        } else {
+            // If not a StatsEventHandler, use default values
+            EventStats {
+                token_created: 0,
+                buy_sell: 0,
+                long_short: 0,
+                force_liquidate: 0,
+                full_close: 0,
+                partial_close: 0,
+                milestone_discount: 0,
+                total: 0,
+            }
+        }
     }
 
     #[allow(dead_code)]
@@ -234,11 +305,50 @@ mod tests {
         // This is just a test stub, in real code we need to provide event_storage
         // Create a mock storage for testing
         use tempfile::TempDir;
-        use crate::config::DatabaseConfig;
+        use crate::config::{Config, DatabaseConfig, SolanaConfig, ServerConfig, CorsConfig, LoggingConfig, IpfsConfig, KlineServiceConfig};
         
         let temp_dir = TempDir::new().unwrap();
-        let config = DatabaseConfig {
-            rocksdb_path: temp_dir.path().to_str().unwrap().to_string(),
+        let config = Config {
+            server: ServerConfig {
+                host: "localhost".to_string(),
+                port: 8080,
+            },
+            cors: CorsConfig {
+                enabled: true,
+                allow_origins: vec!["*".to_string()],
+            },
+            logging: LoggingConfig {
+                level: "debug".to_string(),
+            },
+            solana: SolanaConfig {
+                rpc_url: "http://localhost:8899".to_string(),
+                ws_url: "ws://localhost:8900".to_string(),
+                program_id: "JBMmrp6jhksqnxDBskkmVvWHhJLaPBjgiMHEroJbUTBZ".to_string(),
+                enable_event_listener: false,
+                commitment: "processed".to_string(),
+                reconnect_interval: 1,
+                max_reconnect_attempts: 20,
+                event_buffer_size: 1000,
+                event_batch_size: 100,
+                ping_interval_seconds: 60,
+            },
+            database: DatabaseConfig {
+                rocksdb_path: temp_dir.path().to_str().unwrap().to_string(),
+            },
+            ipfs: IpfsConfig {
+                gateway_url: "https://gateway.pinata.cloud/ipfs/".to_string(),
+                request_timeout_seconds: 30,
+                max_retries: 3,
+                retry_delay_seconds: 5,
+            },
+            kline: KlineServiceConfig {
+                enable_kline_service: false,
+                connection_timeout_secs: 60,
+                max_subscriptions_per_client: 100,
+                history_data_limit: 100,
+                ping_interval_secs: 25,
+                ping_timeout_secs: 60,
+            },
         };
         let event_storage = Arc::new(EventStorage::new(&config).unwrap());
         

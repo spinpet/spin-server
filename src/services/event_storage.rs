@@ -1,13 +1,16 @@
 use std::sync::Arc;
+use std::time::Duration;
 use rocksdb::{DB, Options, IteratorMode, Direction};
-use tracing::{info, error, debug};
+use tracing::{info, error, debug, warn};
 use serde::{Serialize, Deserialize};
 use anyhow::Result;
 use serde_with::{serde_as, DisplayFromStr};
 use chrono::{DateTime, Utc};
+use tokio::time::sleep;
 
 use crate::solana::events::*;
-use crate::config::DatabaseConfig;
+use crate::config::{DatabaseConfig, Config};
+use crate::models::{KlineData, KlineQuery, KlineQueryResponse};
 
 /// Event type constants - used for key generation (2 characters to save space)
 pub const EVENT_TYPE_TOKEN_CREATED: &str = "tc";
@@ -18,9 +21,19 @@ pub const EVENT_TYPE_FULL_CLOSE: &str = "fc";
 pub const EVENT_TYPE_PARTIAL_CLOSE: &str = "pc";
 pub const EVENT_TYPE_MILESTONE_DISCOUNT: &str = "md";
 
+/// Kline interval constants - used for key generation (2-3 characters to save space)
+pub const KLINE_INTERVAL_1S: &str = "s1";
+pub const KLINE_INTERVAL_30S: &str = "s30";
+pub const KLINE_INTERVAL_5M: &str = "m5";
+
+/// Precision constant for u128 to f64 conversion (28 decimal places)
+pub const PRICE_PRECISION: u128 = 10_u128.pow(28);
+
 /// Event storage service
 pub struct EventStorage {
     db: Arc<DB>,
+    config: Config,
+    http_client: reqwest::Client,
 }
 
 /// Event query parameters
@@ -162,7 +175,7 @@ pub struct UserQuery {
     pub order_by: Option<String>, // "slot_asc" or "slot_desc"
 }
 
-/// User transaction query response
+/// User transaction query response  
 #[derive(Debug, Serialize, Deserialize, Default, utoipa::ToSchema)]
 pub struct UserQueryResponse {
     pub transactions: Vec<UserTransactionData>,
@@ -173,6 +186,22 @@ pub struct UserQueryResponse {
     pub has_prev: bool,
     pub user: String,
     pub mint_account: Option<String>,
+}
+
+/// Token URI metadata information from IPFS
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema, Default, Clone)]
+pub struct TokenUriData {
+    pub name: Option<String>,
+    pub symbol: Option<String>,
+    pub description: Option<String>,
+    pub image: Option<String>,
+    #[serde(rename = "showName")]
+    pub show_name: Option<bool>,
+    #[serde(rename = "createdOn")]
+    pub created_on: Option<String>,
+    pub twitter: Option<String>,
+    pub website: Option<String>,
+    pub telegram: Option<String>,
 }
 
 /// Mint detail information
@@ -206,6 +235,7 @@ pub struct MintDetailData {
     pub created_by: Option<String>,
     #[schema(value_type = Option<String>)]
     pub last_updated_at: Option<DateTime<Utc>>,
+    pub uri_data: Option<TokenUriData>,
 }
 
 /// Mint details query parameters
@@ -223,7 +253,7 @@ pub struct MintDetailsQueryResponse {
 
 impl EventStorage {
     /// Create a new event storage instance
-    pub fn new(config: &DatabaseConfig) -> Result<Self> {
+    pub fn new(config: &Config) -> Result<Self> {
         let mut opts = Options::default();
         opts.create_if_missing(true);
         opts.create_missing_column_families(true);
@@ -282,11 +312,17 @@ impl EventStorage {
         // 10. Optimize memory allocation
         opts.set_arena_block_size(64 * 1024 * 1024);         // 64MB arena blocks
         
-        let db = DB::open(&opts, &config.rocksdb_path)?;
+        let db = DB::open(&opts, &config.database.rocksdb_path)?;
         
-        info!("🗄️ RocksDB initialized successfully, path: {}", config.rocksdb_path);
+        let http_client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(config.ipfs.request_timeout_seconds))
+            .build()?;
+        
+        info!("🗄️ RocksDB initialized successfully, path: {}", config.database.rocksdb_path);
         Ok(Self {
             db: Arc::new(db),
+            config: config.clone(),
+            http_client,
         })
     }
 
@@ -367,6 +403,42 @@ impl EventStorage {
     /// Format: uo:{user}:{mint}:{order_pda}
     fn generate_user_order_key(&self, user: &str, mint: &str, order_pda: &str) -> String {
         format!("uo:{}:{}:{}", user, mint, order_pda)
+    }
+
+    /// Generate kline key
+    /// Format: {interval}:{mint_account}:{timestamp_padded}
+    fn generate_kline_key(&self, interval: &str, mint_account: &str, timestamp: u64) -> String {
+        format!("{}:{}:{:020}", interval, mint_account, timestamp)
+    }
+
+    /// Convert u128 price to f64 with 28-bit precision handling
+    fn convert_price_to_f64(&self, price_u128: u128) -> f64 {
+        // Convert u128 to f64 with precision handling
+        // Since u128 has 28 decimal places, we divide by 10^28
+        // But f64 has limited precision, so we might lose some accuracy
+        let price_f64 = price_u128 as f64 / PRICE_PRECISION as f64;
+        
+        // Round to reasonable precision (e.g., 12 decimal places) to avoid floating point noise
+        (price_f64 * 1e12).round() / 1e12
+    }
+
+    /// Calculate time bucket for different intervals
+    /// Returns the aligned timestamp for the time bucket
+    fn calculate_time_bucket(&self, timestamp: u64, interval: &str) -> u64 {
+        match interval {
+            KLINE_INTERVAL_1S => timestamp, // 1-second intervals - no alignment needed
+            KLINE_INTERVAL_30S => {
+                // 30-second intervals - align to 30-second boundary
+                // Floor timestamp to 30-second boundary, then return the aligned timestamp
+                (timestamp / 30) * 30
+            },
+            KLINE_INTERVAL_5M => {
+                // 5-minute intervals - align to 5-minute boundary
+                // Floor timestamp to 5-minute boundary, then return the aligned timestamp
+                (timestamp / 300) * 300
+            },
+            _ => timestamp, // default to 1-second
+        }
     }
 
     /// Get order by PDA for user order operations
@@ -491,10 +563,215 @@ impl EventStorage {
         }
     }
 
+    /// Get the latest kline data before the given time bucket for price continuity
+    fn get_previous_kline_close_price(&self, interval: &str, mint_account: &str, current_time_bucket: u64) -> Option<f64> {
+        // Build prefix key for the specific mint and interval
+        let prefix = format!("{}:{}:", interval, mint_account);
+        
+        // Iterate from the beginning to find the latest kline before current_time_bucket
+        let iter = self.db.iterator(IteratorMode::From(prefix.as_bytes(), Direction::Forward));
+        let mut latest_close_price = None;
+        
+        for item in iter {
+            if let Ok((key, value)) = item {
+                let key_str = String::from_utf8_lossy(&key);
+                
+                // Check if still matches prefix
+                if !key_str.starts_with(&prefix) {
+                    break;
+                }
+                
+                // Extract timestamp from key format: "interval:mint_account:timestamp"
+                if let Some(timestamp_str) = key_str.split(':').nth(2) {
+                    if let Ok(timestamp) = timestamp_str.parse::<u64>() {
+                        // Only consider klines before the current time bucket
+                        if timestamp < current_time_bucket {
+                            // Parse kline data to get close price
+                            if let Ok(kline_data) = serde_json::from_slice::<KlineData>(&value) {
+                                latest_close_price = Some(kline_data.close);
+                            }
+                        } else {
+                            // We've reached klines at or after current time bucket, stop
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        latest_close_price
+    }
+
+    /// Process kline data for price events
+    async fn process_kline_data(&self, mint_account: &str, latest_price: u128, timestamp: DateTime<Utc>) -> Result<()> {
+        let price = self.convert_price_to_f64(latest_price);
+        let unix_timestamp = timestamp.timestamp() as u64;
+        
+        let intervals = [KLINE_INTERVAL_1S, KLINE_INTERVAL_30S, KLINE_INTERVAL_5M];
+        
+        for interval in intervals {
+            let time_bucket = self.calculate_time_bucket(unix_timestamp, interval);
+            let kline_key = self.generate_kline_key(interval, mint_account, time_bucket);
+            
+            // Try to get existing kline data
+            let kline_data = match self.db.get(kline_key.as_bytes())? {
+                Some(data) => {
+                    match serde_json::from_slice::<KlineData>(&data) {
+                        Ok(mut existing_kline) => {
+                            // Update existing kline data (same time bucket)
+                            existing_kline.high = existing_kline.high.max(price);
+                            existing_kline.low = existing_kline.low.min(price);
+                            existing_kline.close = price;
+                            existing_kline.update_count += 1;
+                            existing_kline.is_final = false; // Mark as not final since it's being updated
+                            existing_kline
+                        }
+                        Err(e) => {
+                            warn!("Failed to parse existing kline data: {}, creating new one", e);
+                            // Create new kline data if parsing fails
+                            // Get previous kline close price to avoid gaps
+                            let open_price = self.get_previous_kline_close_price(interval, mint_account, time_bucket)
+                                .unwrap_or(price); // Use current price if no previous kline found
+                            
+                            KlineData {
+                                time: time_bucket,
+                                open: open_price,
+                                high: price,
+                                low: price,
+                                close: price,
+                                volume: 0.0, // Volume is 0 as requested
+                                is_final: false,
+                                update_count: 1,
+                            }
+                        }
+                    }
+                }
+                None => {
+                    // Create new kline data for different time bucket
+                    // Get previous kline close price to maintain price continuity and avoid gaps
+                    let open_price = self.get_previous_kline_close_price(interval, mint_account, time_bucket)
+                        .unwrap_or(price); // Use current price if no previous kline found (first kline)
+                    
+                    KlineData {
+                        time: time_bucket,
+                        open: open_price,
+                        high: price,
+                        low: price,
+                        close: price,
+                        volume: 0.0, // Volume is 0 as requested
+                        is_final: false,
+                        update_count: 1,
+                    }
+                }
+            };
+            
+            // Store updated kline data
+            let value = serde_json::to_vec(&kline_data)?;
+            self.db.put(kline_key.as_bytes(), &value)?;
+            
+            debug!("💹 Kline data updated for interval {}, mint: {}, time: {}, open: {}, close: {}", 
+                   interval, mint_account, time_bucket, kline_data.open, price);
+        }
+        
+        Ok(())
+    }
+
     /// Generate mint detail key
     /// Format: in:{mint_account}
     fn generate_mint_detail_key(&self, mint_account: &str) -> String {
         format!("in:{}", mint_account)
+    }
+
+    /// Extract IPFS hash from URI
+    fn extract_ipfs_hash(uri: &str) -> Option<String> {
+        if let Some(hash) = uri.strip_prefix("https://ipfs.io/ipfs/") {
+            Some(hash.to_string())
+        } else if uri.starts_with("ipfs://") {
+            Some(uri[7..].to_string())
+        } else {
+            // Try to extract hash from other common IPFS patterns
+            if uri.contains("/ipfs/") {
+                if let Some(pos) = uri.find("/ipfs/") {
+                    let start = pos + 6; // "/ipfs/".len()
+                    let hash = &uri[start..];
+                    // Find the end of the hash (before any query params or fragments)
+                    let end_pos = hash.find('?').or_else(|| hash.find('#')).unwrap_or(hash.len());
+                    Some(hash[..end_pos].to_string())
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+    }
+
+    /// Fetch token metadata from IPFS with retry logic
+    async fn fetch_token_uri_data(&self, uri: &str) -> Option<TokenUriData> {
+        let ipfs_hash = Self::extract_ipfs_hash(uri)?;
+        let ipfs_url = format!("{}{}", self.config.ipfs.gateway_url, ipfs_hash);
+        
+        debug!("Fetching token metadata from: {}", ipfs_url);
+        
+        for attempt in 1..=self.config.ipfs.max_retries {
+            match self.http_client.get(&ipfs_url).send().await {
+                Ok(response) => {
+                    if response.status().is_success() {
+                        match response.json::<TokenUriData>().await {
+                            Ok(uri_data) => {
+                                debug!("Successfully fetched token metadata for URI: {}", uri);
+                                return Some(uri_data);
+                            }
+                            Err(e) => {
+                                warn!("Failed to parse JSON from IPFS (attempt {}/{}): {}", attempt, self.config.ipfs.max_retries, e);
+                            }
+                        }
+                    } else {
+                        warn!("HTTP error from IPFS gateway (attempt {}/{}): {}", attempt, self.config.ipfs.max_retries, response.status());
+                    }
+                }
+                Err(e) => {
+                    warn!("Network error fetching from IPFS (attempt {}/{}): {}", attempt, self.config.ipfs.max_retries, e);
+                }
+            }
+            
+            // Sleep before retry (except on last attempt)
+            if attempt < self.config.ipfs.max_retries {
+                sleep(Duration::from_secs(self.config.ipfs.retry_delay_seconds)).await;
+            }
+        }
+        
+        error!("Failed to fetch token metadata after {} attempts for URI: {}", self.config.ipfs.max_retries, uri);
+        None
+    }
+
+    /// Update mint detail with URI data
+    async fn update_mint_uri_data(&self, mint_account: &str, uri_data: TokenUriData) -> Result<()> {
+        let key = self.generate_mint_detail_key(mint_account);
+        
+        // Get existing detail
+        let mut detail = match self.db.get(key.as_bytes())? {
+            Some(data) => serde_json::from_slice::<MintDetailData>(&data)
+                .unwrap_or_else(|_| MintDetailData {
+                    mint_account: mint_account.to_string(),
+                    ..Default::default()
+                }),
+            None => {
+                warn!("Mint detail not found for URI update: {}", mint_account);
+                return Ok(());
+            }
+        };
+        
+        // Update URI data
+        detail.uri_data = Some(uri_data);
+        detail.last_updated_at = Some(Utc::now());
+        
+        // Save back to database
+        let value = serde_json::to_vec(&detail)?;
+        self.db.put(key.as_bytes(), &value)?;
+        
+        debug!("✅ URI data updated successfully for mint: {}", mint_account);
+        Ok(())
     }
 
     /// Process events for mint detail data
@@ -549,7 +826,7 @@ impl EventStorage {
                 detail.fee_discount_flag = Some(e.fee_discount_flag);
                 detail.last_updated_at = Some(e.timestamp);
             },
-            SpinPetEvent::BuySell(e) => {
+            SpinPetEvent::BuySell(e) => { 
                 detail.latest_price = Some(e.latest_price);
                 detail.latest_trade_time = Some(e.timestamp.timestamp());
                 detail.total_sol_amount = detail.total_sol_amount.saturating_add(e.sol_amount);
@@ -583,6 +860,29 @@ impl EventStorage {
         self.db.put(key.as_bytes(), &value)?;
         
         debug!("💾 Mint detail updated successfully, key: {}", key);
+        
+        // For TokenCreated events, fetch URI data asynchronously if URI is present
+        if let SpinPetEvent::TokenCreated(token_event) = event {
+            if !token_event.uri.is_empty() {
+                let storage = Self {
+                    db: self.db.clone(),
+                    config: self.config.clone(),
+                    http_client: self.http_client.clone(),
+                };
+                let uri = token_event.uri.clone();
+                let mint_account = token_event.mint_account.clone();
+                
+                // Spawn async task to fetch URI data without blocking
+                tokio::spawn(async move {
+                    if let Some(uri_data) = storage.fetch_token_uri_data(&uri).await {
+                        if let Err(e) = storage.update_mint_uri_data(&mint_account, uri_data).await {
+                            error!("Failed to update URI data for mint {}: {}", mint_account, e);
+                        }
+                    }
+                });
+            }
+        }
+        
         Ok(())
     }
 
@@ -763,6 +1063,33 @@ impl EventStorage {
              let user_value = serde_json::to_vec(&user_transaction)?;
              batch.put(user_key.as_bytes(), &user_value);
              debug!("💾 User transaction recorded successfully, key: {}", user_key);
+         }
+
+         // Process kline data for price events
+         match &event {
+             SpinPetEvent::BuySell(e) => {
+                 if let Err(err) = self.process_kline_data(&e.mint_account, e.latest_price, e.timestamp).await {
+                     error!("❌ Failed to process kline data for BuySell event: {}", err);
+                 }
+             }
+             SpinPetEvent::LongShort(e) => {
+                 if let Err(err) = self.process_kline_data(&e.mint_account, e.latest_price, e.timestamp).await {
+                     error!("❌ Failed to process kline data for LongShort event: {}", err);
+                 }
+             }
+             SpinPetEvent::FullClose(e) => {
+                 if let Err(err) = self.process_kline_data(&e.mint_account, e.latest_price, e.timestamp).await {
+                     error!("❌ Failed to process kline data for FullClose event: {}", err);
+                 }
+             }
+             SpinPetEvent::PartialClose(e) => {
+                 if let Err(err) = self.process_kline_data(&e.mint_account, e.latest_price, e.timestamp).await {
+                     error!("❌ Failed to process kline data for PartialClose event: {}", err);
+                 }
+             }
+             _ => {
+                 // Other events don't have latest_price, so no kline processing needed
+             }
          }
 
          // Process mint detail data
@@ -1253,6 +1580,89 @@ impl EventStorage {
         })
     }
 
+    /// Query kline data
+    pub async fn query_kline_data(&self, query: KlineQuery) -> Result<KlineQueryResponse> {
+        let mint_account = &query.mint_account;
+        let interval = &query.interval;
+        let page = query.page.unwrap_or(1);
+        let limit = query.limit.unwrap_or(50);
+        let order_by = query.order_by.unwrap_or_else(|| "time_desc".to_string());
+        
+        // Validate interval
+        if !matches!(interval.as_str(), "s1" | "s30" | "m5") {
+            return Err(anyhow::anyhow!("Invalid interval: {}, must be one of: s1, s30, m5", interval));
+        }
+        
+        debug!("🔍 Querying kline data, mint: {}, interval: {}, page: {}, limit: {}, order: {}", 
+               mint_account, interval, page, limit, order_by);
+        
+        // Build prefix key for the specific mint and interval
+        let prefix = format!("{}:{}:", interval, mint_account);
+        
+        // Collect all matching kline data
+        let mut all_klines = Vec::new();
+        
+        let iter = self.db.iterator(IteratorMode::From(prefix.as_bytes(), Direction::Forward));
+        
+        for item in iter {
+            let (key, value) = item?;
+            let key_str = String::from_utf8_lossy(&key);
+            
+            // Check if still matches prefix
+            if !key_str.starts_with(&prefix) {
+                break;
+            }
+            
+            // Parse kline data
+            match serde_json::from_slice::<KlineData>(&value) {
+                Ok(kline_data) => all_klines.push(kline_data),
+                Err(e) => {
+                    error!("❌ Failed to parse kline data: {}, key: {}", e, key_str);
+                    continue;
+                }
+            }
+        }
+        
+        // Sort by time
+        match order_by.as_str() {
+            "time_asc" => {
+                all_klines.sort_by(|a, b| a.time.cmp(&b.time));
+            }
+            "time_desc" => {
+                all_klines.sort_by(|a, b| b.time.cmp(&a.time));
+            }
+            _ => {
+                // Default sort by time descending (newest first)
+                all_klines.sort_by(|a, b| b.time.cmp(&a.time));
+            }
+        }
+        
+        let total = all_klines.len();
+        let offset = (page - 1) * limit;
+        let has_prev = page > 1;
+        let has_next = offset + limit < total;
+        
+        // Pagination
+        let klines = all_klines
+            .into_iter()
+            .skip(offset)
+            .take(limit)
+            .collect::<Vec<_>>();
+        
+        debug!("🔍 Retrieved {} klines for mint: {}, interval: {}", klines.len(), mint_account, interval);
+        
+        Ok(KlineQueryResponse {
+            klines,
+            total,
+            page,
+            limit,
+            has_next,
+            has_prev,
+            interval: interval.clone(),
+            mint_account: mint_account.clone(),
+        })
+    }
+
     /// Get database statistics
     pub fn get_stats(&self) -> Result<String> {
         let stats = self.db.property_value("rocksdb.stats")?;
@@ -1269,8 +1679,47 @@ mod tests {
     #[tokio::test]
     async fn test_event_storage() {
         let temp_dir = TempDir::new().unwrap();
-        let config = crate::config::DatabaseConfig {
-            rocksdb_path: temp_dir.path().to_str().unwrap().to_string(),
+        let config = crate::config::Config {
+            server: crate::config::ServerConfig {
+                host: "localhost".to_string(),
+                port: 8080,
+            },
+            cors: crate::config::CorsConfig {
+                enabled: true,
+                allow_origins: vec!["*".to_string()],
+            },
+            logging: crate::config::LoggingConfig {
+                level: "debug".to_string(),
+            },
+            solana: crate::config::SolanaConfig {
+                rpc_url: "http://localhost:8899".to_string(),
+                ws_url: "ws://localhost:8900".to_string(),
+                program_id: "JBMmrp6jhksqnxDBskkmVvWHhJLaPBjgiMHEroJbUTBZ".to_string(),
+                enable_event_listener: false,
+                commitment: "processed".to_string(),
+                reconnect_interval: 1,
+                max_reconnect_attempts: 20,
+                event_buffer_size: 1000,
+                event_batch_size: 100,
+                ping_interval_seconds: 60,
+            },
+            database: crate::config::DatabaseConfig {
+                rocksdb_path: temp_dir.path().to_str().unwrap().to_string(),
+            },
+            ipfs: crate::config::IpfsConfig {
+                gateway_url: "https://crimson-binding-tarantula-509.mypinata.cloud/ipfs/".to_string(),
+                request_timeout_seconds: 30,
+                max_retries: 3,
+                retry_delay_seconds: 5,
+            },
+            kline: crate::config::KlineServiceConfig {
+                enable_kline_service: false,
+                connection_timeout_secs: 60,
+                max_subscriptions_per_client: 100,
+                history_data_limit: 100,
+                ping_interval_secs: 25,
+                ping_timeout_secs: 60,
+            },
         };
         
         let storage = EventStorage::new(&config).unwrap();
@@ -1299,6 +1748,7 @@ mod tests {
             total_close_profit: 500,
             created_by: Some("test_user".to_string()),
             last_updated_at: Some(Utc::now()),
+            uri_data: None,
         };
         
         let key = storage.generate_mint_detail_key(&mint_detail.mint_account);
