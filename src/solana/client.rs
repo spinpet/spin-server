@@ -226,6 +226,7 @@ impl SolanaClient {
     }
 
     /// Get latest slot with automatic reconnection
+    #[allow(dead_code)]
     pub async fn get_latest_slot(&self) -> Result<u64> {
         self.execute_with_retry(|client| {
             let slot = client.get_slot()?;
