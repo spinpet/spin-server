@@ -259,6 +259,7 @@ impl SolanaClient {
     }
 
     /// Get transaction details with automatic reconnection
+    #[allow(dead_code)]
     pub async fn get_transaction_details(&self, signature: &str) -> Result<Option<TransactionDetails>> {
         let signature_str = signature.to_string();
         self.execute_with_retry(move |client| {
