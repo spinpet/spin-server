@@ -346,6 +346,7 @@ impl SolanaClient {
     }
 
     /// Force reconnection (useful for manual recovery)
+    #[allow(dead_code)]
     pub async fn force_reconnect(&self) -> Result<()> {
         info!("🔄 Force reconnecting RPC client");
         self.reconnect().await
