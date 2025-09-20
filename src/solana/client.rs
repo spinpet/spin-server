@@ -353,6 +353,7 @@ impl SolanaClient {
     }
 
     /// Get current connection state
+    #[allow(dead_code)]
     pub async fn get_connection_state(&self) -> ConnectionState {
         self.connection_state.read().await.clone()
     }
