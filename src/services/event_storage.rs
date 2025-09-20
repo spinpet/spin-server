@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use tokio::time::sleep;
 
 use crate::solana::events::*;
-use crate::config::{DatabaseConfig, Config};
+use crate::config::Config;
 use crate::models::{KlineData, KlineQuery, KlineQueryResponse};
 
 /// Event type constants - used for key generation (2 characters to save space)
