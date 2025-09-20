@@ -122,7 +122,7 @@ pub struct EventService {
 impl EventService {
     /// Create a new event service with default StatsEventHandler
     pub fn new(config: &crate::config::Config) -> anyhow::Result<Self> {
-        let client = Arc::new(SolanaClient::new(&config.solana.rpc_url, &config.solana.program_id)?);
+        let _client = Arc::new(SolanaClient::new(&config.solana.rpc_url, &config.solana.program_id)?);
         let event_storage = Arc::new(EventStorage::new(config)?);
         let event_handler = Arc::new(StatsEventHandler::new(Arc::clone(&event_storage)));
         
