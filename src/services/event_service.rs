@@ -115,6 +115,7 @@ pub struct EventService {
     client: Arc<SolanaClient>,
     listener_manager: EventListenerManager,
     event_handler: Arc<dyn EventHandler>,
+    #[allow(dead_code)]
     event_storage: Arc<EventStorage>,
     config: SolanaConfig,
 }
