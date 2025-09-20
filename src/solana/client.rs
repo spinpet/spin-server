@@ -371,6 +371,7 @@ impl SolanaClient {
     }
 
     /// Check if client is currently connected
+    #[allow(dead_code)]
     pub async fn is_connected(&self) -> bool {
         matches!(*self.connection_state.read().await, ConnectionState::Connected)
     }
