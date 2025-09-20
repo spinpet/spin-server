@@ -500,6 +500,13 @@ pub struct TestIpfsParams {
     pub payer: Option<String>,
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct TestOrderParams {
+    pub user: String,
+    pub mint_account: String,
+    pub order_pda: String,
+}
+
 /// Query kline data
 #[utoipa::path(
     get,
