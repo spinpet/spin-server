@@ -379,6 +379,7 @@ impl SolanaClient {
 
 /// Transaction details structure
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TransactionDetails {
     pub signature: String,
     pub slot: u64,
