@@ -1704,6 +1704,48 @@ impl EventStorage {
         })
     }
 
+    /// Create test order data for testing purposes
+    #[allow(dead_code)]
+    pub fn create_test_order_data(&self, user: &str, mint: &str, order_pda: &str) -> Result<()> {
+        let test_order = OrderData {
+            order_type: 2, // up order (short)
+            mint: mint.to_string(),
+            user: user.to_string(),
+            lock_lp_start_price: 100000000000000000000u128, // Example price
+            lock_lp_end_price: 120000000000000000000u128,   // Example price
+            lock_lp_sol_amount: 1000000000, // 1 SOL in lamports
+            lock_lp_token_amount: 500000000,
+            start_time: 1758343400, // Example timestamp
+            end_time: 1758343800,   // Example timestamp
+            margin_sol_amount: 500000000, // 0.5 SOL
+            borrow_amount: 1500000000,
+            position_asset_amount: 2000000000,
+            borrow_fee: 250,
+            order_pda: order_pda.to_string(),
+            // Initialize with defaults - will be enriched later
+            latest_price: 0,
+            latest_trade_time: 0,
+            name: String::new(),
+            symbol: String::new(),
+            image: String::new(),
+        };
+
+        // Store the order data
+        let order_key = self.generate_order_key(mint, test_order.order_type, order_pda);
+        let user_order_key = self.generate_user_order_key(user, mint, order_pda);
+        let order_value = serde_json::to_vec(&test_order)?;
+
+        // Use a batch for atomicity
+        let mut batch = rocksdb::WriteBatch::default();
+        batch.put(order_key.as_bytes(), &order_value);
+        batch.put(user_order_key.as_bytes(), &order_value);
+        
+        self.db.write(batch)?;
+        
+        info!("💾 Test order created successfully: user={}, mint={}, order_pda={}", user, mint, order_pda);
+        Ok(())
+    }
+
     /// Query kline data
     pub async fn query_kline_data(&self, query: KlineQuery) -> Result<KlineQueryResponse> {
         let mint_account = &query.mint_account;
