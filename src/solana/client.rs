@@ -359,6 +359,7 @@ impl SolanaClient {
     }
 
     /// Get connection statistics
+    #[allow(dead_code)]
     pub async fn get_connection_stats(&self) -> ConnectionStats {
         self.stats.read().await.clone()
     }
