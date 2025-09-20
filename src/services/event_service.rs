@@ -278,6 +278,7 @@ impl EventService {
     }
 
     /// Get event storage
+    #[allow(dead_code)]
     pub fn get_event_storage(&self) -> Arc<EventStorage> {
         Arc::clone(&self.event_storage)
     }
