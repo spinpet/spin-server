@@ -5,7 +5,6 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::collections::{HashMap, HashSet};
 use tokio::sync::RwLock;
-use tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use socketioxide::SocketIo;
 use socketioxide::extract::{Data, SocketRef};
