@@ -106,6 +106,13 @@ pub struct OrderData {
     pub position_asset_amount: u64,
     pub borrow_fee: u16,
     pub order_pda: String,
+    // Token information fields
+    #[serde_as(as = "DisplayFromStr")]
+    pub latest_price: u128,
+    pub latest_trade_time: i64,
+    pub name: String,
+    pub symbol: String,
+    pub image: String,
 }
 
 /// Order query parameters
