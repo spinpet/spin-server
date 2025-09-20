@@ -563,6 +563,45 @@ impl EventStorage {
         }
     }
 
+    /// Get the latest kline data before the given time bucket for price continuity
+    fn get_previous_kline_close_price(&self, interval: &str, mint_account: &str, current_time_bucket: u64) -> Option<f64> {
+        // Build prefix key for the specific mint and interval
+        let prefix = format!("{}:{}:", interval, mint_account);
+        
+        // Iterate from the beginning to find the latest kline before current_time_bucket
+        let iter = self.db.iterator(IteratorMode::From(prefix.as_bytes(), Direction::Forward));
+        let mut latest_close_price = None;
+        
+        for item in iter {
+            if let Ok((key, value)) = item {
+                let key_str = String::from_utf8_lossy(&key);
+                
+                // Check if still matches prefix
+                if !key_str.starts_with(&prefix) {
+                    break;
+                }
+                
+                // Extract timestamp from key format: "interval:mint_account:timestamp"
+                if let Some(timestamp_str) = key_str.split(':').nth(2) {
+                    if let Ok(timestamp) = timestamp_str.parse::<u64>() {
+                        // Only consider klines before the current time bucket
+                        if timestamp < current_time_bucket {
+                            // Parse kline data to get close price
+                            if let Ok(kline_data) = serde_json::from_slice::<KlineData>(&value) {
+                                latest_close_price = Some(kline_data.close);
+                            }
+                        } else {
+                            // We've reached klines at or after current time bucket, stop
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        latest_close_price
+    }
+
     /// Process kline data for price events
     async fn process_kline_data(&self, mint_account: &str, latest_price: u128, timestamp: DateTime<Utc>) -> Result<()> {
         let price = self.convert_price_to_f64(latest_price);
@@ -579,7 +618,7 @@ impl EventStorage {
                 Some(data) => {
                     match serde_json::from_slice::<KlineData>(&data) {
                         Ok(mut existing_kline) => {
-                            // Update existing kline data
+                            // Update existing kline data (same time bucket)
                             existing_kline.high = existing_kline.high.max(price);
                             existing_kline.low = existing_kline.low.min(price);
                             existing_kline.close = price;
@@ -590,9 +629,13 @@ impl EventStorage {
                         Err(e) => {
                             warn!("Failed to parse existing kline data: {}, creating new one", e);
                             // Create new kline data if parsing fails
+                            // Get previous kline close price to avoid gaps
+                            let open_price = self.get_previous_kline_close_price(interval, mint_account, time_bucket)
+                                .unwrap_or(price); // Use current price if no previous kline found
+                            
                             KlineData {
                                 time: time_bucket,
-                                open: price,
+                                open: open_price,
                                 high: price,
                                 low: price,
                                 close: price,
@@ -604,10 +647,14 @@ impl EventStorage {
                     }
                 }
                 None => {
-                    // Create new kline data
+                    // Create new kline data for different time bucket
+                    // Get previous kline close price to maintain price continuity and avoid gaps
+                    let open_price = self.get_previous_kline_close_price(interval, mint_account, time_bucket)
+                        .unwrap_or(price); // Use current price if no previous kline found (first kline)
+                    
                     KlineData {
                         time: time_bucket,
-                        open: price,
+                        open: open_price,
                         high: price,
                         low: price,
                         close: price,
@@ -622,8 +669,8 @@ impl EventStorage {
             let value = serde_json::to_vec(&kline_data)?;
             self.db.put(kline_key.as_bytes(), &value)?;
             
-            debug!("💹 Kline data updated for interval {}, mint: {}, time: {}, price: {}", 
-                   interval, mint_account, time_bucket, price);
+            debug!("💹 Kline data updated for interval {}, mint: {}, time: {}, open: {}, close: {}", 
+                   interval, mint_account, time_bucket, kline_data.open, price);
         }
         
         Ok(())
