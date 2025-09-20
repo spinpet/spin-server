@@ -1624,7 +1624,7 @@ impl EventStorage {
                         // Parse as old format and add default token info
                         match serde_json::from_value::<serde_json::Value>(json_value) {
                             Ok(old_order) => {
-                                let mut new_order = OrderData {
+                                let new_order = OrderData {
                                     order_type: old_order.get("order_type").and_then(|v| v.as_u64()).unwrap_or(0) as u8,
                                     mint: old_order.get("mint").and_then(|v| v.as_str()).unwrap_or("").to_string(),
                                     user: old_order.get("user").and_then(|v| v.as_str()).unwrap_or("").to_string(),
