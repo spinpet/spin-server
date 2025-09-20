@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::events::{EventParser, SpinPetEvent};
 use super::client::SolanaClient;
 use crate::config::SolanaConfig;
