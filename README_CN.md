@@ -612,7 +612,7 @@ graph LR
 | `mint_account` | 查询的代币地址（如果有指定） |
 
 **用户交易事件字段**:
-- `event_type`: 事件类型（`long_short`, `force_liquidate`, `full_close`, `partial_close`）
+- `event_type`: 事件类型（`long_short`, `force_liquidate`, `full_close`, `partial_close`） 
 - `user`: 用户地址
 - `mint_account`: 代币账户地址
 - `slot`: 区块高度
