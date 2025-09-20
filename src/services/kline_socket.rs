@@ -242,6 +242,7 @@ pub struct HistoryRequest {
     pub symbol: String,
     pub interval: String,
     pub limit: Option<usize>,
+    #[allow(dead_code)]
     pub from: Option<u64>,                   // 开始时间戳（秒）
 }
 
