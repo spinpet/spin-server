@@ -307,7 +307,6 @@ impl SolanaClient {
                         }
                         None => (Vec::new(), false),
                     };
-                    
                     let details = TransactionDetails {
                         signature: signature.to_string(),
                         slot: transaction.slot,
