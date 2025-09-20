@@ -508,6 +508,12 @@ impl EventStorage {
             position_asset_amount: event.position_asset_amount,
             borrow_fee: event.borrow_fee,
             order_pda: event.order_pda.clone(),
+            // Initialize token info fields with defaults - will be enriched later
+            latest_price: 0,
+            latest_trade_time: 0,
+            name: String::new(),
+            symbol: String::new(),
+            image: String::new(),
         }
     }
 
