@@ -1,18 +1,20 @@
-use solana_client::rpc_client::RpcClient;
-use solana_client::rpc_config::{RpcTransactionConfig, RpcTransactionLogsConfig, RpcTransactionLogsFilter};
-use solana_transaction_status::UiTransactionEncoding;
-use solana_sdk::pubkey::Pubkey;
-use solana_sdk::commitment_config::CommitmentConfig;
-use solana_sdk::signature::Signature;
 use anyhow::Result;
+use serde_json::Value;
+use solana_client::rpc_client::RpcClient;
+use solana_client::rpc_config::{
+    RpcTransactionConfig, RpcTransactionLogsConfig, RpcTransactionLogsFilter,
+};
+use solana_sdk::commitment_config::CommitmentConfig;
+use solana_sdk::pubkey::Pubkey;
+use solana_sdk::signature::Signature;
+use solana_transaction_status::UiTransactionEncoding;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 use std::sync::Arc;
-use std::hash::{Hash, Hasher};
-use std::collections::hash_map::DefaultHasher;
 use tokio::sync::RwLock;
 use tokio::time::{sleep, Duration, Instant};
-use tracing::{info, error, debug, warn};
-use serde_json::Value;
+use tracing::{debug, error, info, warn};
 
 /// Connection state for RPC client
 #[derive(Debug, Clone, PartialEq)]
@@ -62,11 +64,11 @@ impl SolanaClient {
     pub fn new(rpc_url: &str, program_id: &str) -> Result<Self> {
         let program_id = Pubkey::from_str(program_id)?;
         let client = RpcClient::new(rpc_url.to_string());
-        
+
         info!("Solana client initialized successfully");
         info!("RPC URL: {}", rpc_url);
         info!("Program ID: {}", program_id);
-        
+
         Ok(Self {
             rpc_url: rpc_url.to_string(),
             program_id,
@@ -82,7 +84,7 @@ impl SolanaClient {
     /// Create a new Solana client with custom reconnection settings
     #[allow(dead_code)]
     pub fn new_with_config(
-        rpc_url: &str, 
+        rpc_url: &str,
         program_id: &str,
         max_reconnect_attempts: u32,
         base_reconnect_interval: u64,
@@ -102,7 +104,7 @@ impl SolanaClient {
         T: Send,
     {
         let mut attempts = 0;
-        
+
         loop {
             // Update stats
             {
@@ -130,7 +132,7 @@ impl SolanaClient {
                     }
                     Err(e) => {
                         error!("RPC request failed: {}", e);
-                        
+
                         // Update failed request stats
                         {
                             let mut stats = self.stats.write().await;
@@ -145,28 +147,45 @@ impl SolanaClient {
 
                         attempts += 1;
                         if attempts >= self.max_reconnect_attempts {
-                            error!("Max reconnection attempts ({}) exceeded for RPC", self.max_reconnect_attempts);
-                            return Err(anyhow::anyhow!("RPC connection failed after {} attempts", attempts));
+                            error!(
+                                "Max reconnection attempts ({}) exceeded for RPC",
+                                self.max_reconnect_attempts
+                            );
+                            return Err(anyhow::anyhow!(
+                                "RPC connection failed after {} attempts",
+                                attempts
+                            ));
                         }
 
                         // Try to reconnect
                         if let Err(reconnect_err) = self.reconnect().await {
-                            warn!("Reconnection attempt {} failed: {}", attempts, reconnect_err);
-                            
+                            warn!(
+                                "Reconnection attempt {} failed: {}",
+                                attempts, reconnect_err
+                            );
+
                             // Calculate exponential backoff with jitter
                             let delay = std::cmp::min(
                                 self.base_reconnect_interval * 2_u64.pow(attempts - 1),
-                                self.max_reconnect_interval
+                                self.max_reconnect_interval,
                             );
-                            
+
                             // Add jitter (±25%)
                             let jitter = std::cmp::max(delay / 4, 1); // Ensure jitter is at least 1
                             let mut hasher = DefaultHasher::new();
-                            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos().hash(&mut hasher);
+                            std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .unwrap()
+                                .as_nanos()
+                                .hash(&mut hasher);
                             let random_offset = (hasher.finish() % (2 * jitter)) as u64;
                             let actual_delay = delay + random_offset - jitter;
-                            
-                            warn!("Waiting {} seconds before retry attempt {}", actual_delay, attempts + 1);
+
+                            warn!(
+                                "Waiting {} seconds before retry attempt {}",
+                                actual_delay,
+                                attempts + 1
+                            );
                             sleep(Duration::from_secs(actual_delay)).await;
                         } else {
                             info!("RPC reconnection successful on attempt {}", attempts);
@@ -192,10 +211,10 @@ impl SolanaClient {
         }
 
         info!("🔄 Attempting to reconnect to RPC: {}", self.rpc_url);
-        
+
         // Create new client
         let new_client = RpcClient::new(self.rpc_url.clone());
-        
+
         // Test the connection
         match new_client.get_health() {
             Ok(_) => {
@@ -204,12 +223,12 @@ impl SolanaClient {
                     let mut client_guard = self.client.write().await;
                     *client_guard = new_client;
                 }
-                
+
                 {
                     let mut state = self.connection_state.write().await;
                     *state = ConnectionState::Connected;
                 }
-                
+
                 info!("✅ RPC reconnection successful");
                 Ok(())
             }
@@ -218,7 +237,7 @@ impl SolanaClient {
                     let mut state = self.connection_state.write().await;
                     *state = ConnectionState::Disconnected;
                 }
-                
+
                 error!("❌ RPC reconnection failed: {}", e);
                 Err(anyhow::anyhow!("RPC reconnection failed: {}", e))
             }
@@ -232,7 +251,8 @@ impl SolanaClient {
             let slot = client.get_slot()?;
             debug!("Getting latest block height: {}", slot);
             Ok(slot)
-        }).await
+        })
+        .await
     }
 
     /// Get program logs with automatic reconnection
@@ -244,7 +264,7 @@ impl SolanaClient {
             let _config = RpcTransactionLogsConfig {
                 commitment: Some(CommitmentConfig::confirmed()),
             };
-            
+
             match client.get_program_accounts(&program_id) {
                 Ok(accounts) => {
                     info!("Retrieved {} program accounts", accounts.len());
@@ -255,12 +275,16 @@ impl SolanaClient {
                     Err(e.into())
                 }
             }
-        }).await
+        })
+        .await
     }
 
     /// Get transaction details with automatic reconnection
     #[allow(dead_code)]
-    pub async fn get_transaction_details(&self, signature: &str) -> Result<Option<TransactionDetails>> {
+    pub async fn get_transaction_details(
+        &self,
+        signature: &str,
+    ) -> Result<Option<TransactionDetails>> {
         let signature_str = signature.to_string();
         self.execute_with_retry(move |client| {
             let signature = Signature::from_str(&signature_str)?;
@@ -283,7 +307,6 @@ impl SolanaClient {
                         }
                         None => (Vec::new(), false),
                     };
-                    
                     let details = TransactionDetails {
                         signature: signature.to_string(),
                         slot: transaction.slot,
@@ -300,7 +323,7 @@ impl SolanaClient {
             }
         }).await
     }
-    
+
     /// Get transaction with full logs including CPI calls
     pub async fn get_transaction_with_logs(&self, signature: &str) -> Result<Value> {
         let signature_str = signature.to_string();
@@ -312,7 +335,7 @@ impl SolanaClient {
                 commitment: Some(CommitmentConfig::confirmed()),
                 max_supported_transaction_version: Some(0),
             };
-            
+
             match client.get_transaction_with_config(&sig, config) {
                 Ok(transaction) => {
                     // Convert the transaction to JSON for easier parsing
@@ -326,23 +349,23 @@ impl SolanaClient {
                     Ok(serde_json::json!({}))
                 }
             }
-        }).await
+        })
+        .await
     }
 
     /// Check RPC connection status with automatic reconnection attempt
     pub async fn check_connection(&self) -> Result<bool> {
-        self.execute_with_retry(|client| {
-            match client.get_health() {
-                Ok(_) => {
-                    debug!("Solana RPC connection is healthy");
-                    Ok(true)
-                }
-                Err(e) => {
-                    error!("Solana RPC connection failed: {}", e);
-                    Err(anyhow::anyhow!("RPC health check failed: {}", e))
-                }
+        self.execute_with_retry(|client| match client.get_health() {
+            Ok(_) => {
+                debug!("Solana RPC connection is healthy");
+                Ok(true)
             }
-        }).await
+            Err(e) => {
+                error!("Solana RPC connection failed: {}", e);
+                Err(anyhow::anyhow!("RPC health check failed: {}", e))
+            }
+        })
+        .await
     }
 
     /// Force reconnection (useful for manual recovery)
@@ -373,7 +396,10 @@ impl SolanaClient {
     /// Check if client is currently connected
     #[allow(dead_code)]
     pub async fn is_connected(&self) -> bool {
-        matches!(*self.connection_state.read().await, ConnectionState::Connected)
+        matches!(
+            *self.connection_state.read().await,
+            ConnectionState::Connected
+        )
     }
 }
 
@@ -396,12 +422,15 @@ mod tests {
     async fn test_solana_client_creation() {
         let client = SolanaClient::new(
             "https://api.devnet.solana.com",
-            "11111111111111111111111111111111"
+            "11111111111111111111111111111111",
         );
         assert!(client.is_ok());
-        
+
         let client = client.unwrap();
-        assert_eq!(client.get_connection_state().await, ConnectionState::Connected);
+        assert_eq!(
+            client.get_connection_state().await,
+            ConnectionState::Connected
+        );
     }
 
     #[tokio::test]
@@ -418,10 +447,7 @@ mod tests {
 
     #[test]
     fn test_invalid_program_id() {
-        let client = SolanaClient::new(
-            "https://api.devnet.solana.com",
-            "invalid_program_id"
-        );
+        let client = SolanaClient::new("https://api.devnet.solana.com", "invalid_program_id");
         assert!(client.is_err());
     }
 
@@ -429,9 +455,10 @@ mod tests {
     async fn test_connection_stats() {
         let client = SolanaClient::new(
             "https://api.devnet.solana.com",
-            "11111111111111111111111111111111"
-        ).unwrap();
-        
+            "11111111111111111111111111111111",
+        )
+        .unwrap();
+
         let stats = client.get_connection_stats().await;
         assert_eq!(stats.total_requests, 0);
         assert_eq!(stats.failed_requests, 0);

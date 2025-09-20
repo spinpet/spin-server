@@ -1,18 +1,18 @@
-use super::events::{EventParser, SpinPetEvent};
 use super::client::SolanaClient;
+use super::events::{EventParser, SpinPetEvent};
 use crate::config::SolanaConfig;
-use tokio_tungstenite::{connect_async, tungstenite::Message};
-use futures_util::{SinkExt, StreamExt};
-use serde_json::{json, Value};
-use tokio::sync::{mpsc, broadcast};
-use tokio::time::{sleep, Duration, interval};
-use tracing::{info, error, debug, warn};
-use std::sync::Arc;
-use std::collections::HashSet;
 use async_trait::async_trait;
-use uuid::Uuid;
-use tokio::sync::Mutex;
+use futures_util::{SinkExt, StreamExt};
 use rand;
+use serde_json::{json, Value};
+use std::collections::HashSet;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use tokio::sync::{broadcast, mpsc};
+use tokio::time::{interval, sleep, Duration};
+use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tracing::{debug, error, info, warn};
+use uuid::Uuid;
 
 /// Event listener trait
 #[async_trait]
@@ -27,7 +27,7 @@ pub trait EventListener {
 #[async_trait]
 pub trait EventHandler: Send + Sync {
     async fn handle_event(&self, event: SpinPetEvent) -> anyhow::Result<()>;
-    
+
     /// Downcast support for trait objects
     fn as_any(&self) -> &dyn std::any::Any;
 }
@@ -40,7 +40,10 @@ impl EventHandler for DefaultEventHandler {
     async fn handle_event(&self, event: SpinPetEvent) -> anyhow::Result<()> {
         match event {
             SpinPetEvent::TokenCreated(e) => {
-                info!("🪙 Token creation event: {} created token {}", e.payer, e.mint_account);
+                info!(
+                    "🪙 Token creation event: {} created token {}",
+                    e.payer, e.mint_account
+                );
                 info!("   - Token name: {}", e.name);
                 info!("   - Token symbol: {}", e.symbol);
                 info!("   - Curve account: {}", e.curve_account);
@@ -49,16 +52,20 @@ impl EventHandler for DefaultEventHandler {
             }
             SpinPetEvent::BuySell(e) => {
                 let action = if e.is_buy { "bought" } else { "sold" };
-                info!("💰 Trade event: {} {} token {} (token amount: {}, SOL amount: {})", 
-                      e.payer, action, e.mint_account, e.token_amount, e.sol_amount);
+                info!(
+                    "💰 Trade event: {} {} token {} (token amount: {}, SOL amount: {})",
+                    e.payer, action, e.mint_account, e.token_amount, e.sol_amount
+                );
                 info!("   - Latest price: {}", e.latest_price);
                 info!("   - Transaction signature: {}", e.signature);
                 info!("   - Block height: {}", e.slot);
             }
             SpinPetEvent::LongShort(e) => {
                 let direction = if e.order_type == 1 { "long" } else { "short" };
-                info!("📈 Long/Short event: {} went {} on token {} (order PDA: {})", 
-                      e.payer, direction, e.mint_account, e.order_pda);
+                info!(
+                    "📈 Long/Short event: {} went {} on token {} (order PDA: {})",
+                    e.payer, direction, e.mint_account, e.order_pda
+                );
                 info!("   - User: {}", e.user);
                 info!("   - Margin SOL amount: {}", e.margin_sol_amount);
                 info!("   - Borrow amount: {}", e.borrow_amount);
@@ -70,15 +77,19 @@ impl EventHandler for DefaultEventHandler {
                 info!("   - Block height: {}", e.slot);
             }
             SpinPetEvent::ForceLiquidate(e) => {
-                info!("⚠️ Force liquidation event: {} liquidated order {} on token {}", 
-                      e.payer, e.order_pda, e.mint_account);
+                info!(
+                    "⚠️ Force liquidation event: {} liquidated order {} on token {}",
+                    e.payer, e.order_pda, e.mint_account
+                );
                 info!("   - Transaction signature: {}", e.signature);
                 info!("   - Block height: {}", e.slot);
             }
             SpinPetEvent::FullClose(e) => {
                 let direction = if e.is_close_long { "long" } else { "short" };
-                info!("🔒 Full close event: {} closed {} order {} on token {} (profit: {})", 
-                      e.payer, direction, e.order_pda, e.mint_account, e.user_close_profit);
+                info!(
+                    "🔒 Full close event: {} closed {} order {} on token {} (profit: {})",
+                    e.payer, direction, e.order_pda, e.mint_account, e.user_close_profit
+                );
                 info!("   - Final token amount: {}", e.final_token_amount);
                 info!("   - Final SOL amount: {}", e.final_sol_amount);
                 info!("   - Latest price: {}", e.latest_price);
@@ -97,18 +108,23 @@ impl EventHandler for DefaultEventHandler {
                 info!("   - Block height: {}", e.slot);
             }
             SpinPetEvent::MilestoneDiscount(e) => {
-                info!("💲 Milestone discount event: {} updated fees for token {}", 
-                      e.payer, e.mint_account);
+                info!(
+                    "💲 Milestone discount event: {} updated fees for token {}",
+                    e.payer, e.mint_account
+                );
                 info!("   - Swap fee: {}", e.swap_fee);
                 info!("   - Borrow fee: {}", e.borrow_fee);
-                info!("   - Fee discount flag: {} (0: 原价, 1: 5折, 2: 2.5折, 3: 1.25折)", e.fee_discount_flag);
+                info!(
+                    "   - Fee discount flag: {} (0: 原价, 1: 5折, 2: 2.5折, 3: 1.25折)",
+                    e.fee_discount_flag
+                );
                 info!("   - Transaction signature: {}", e.signature);
                 info!("   - Block height: {}", e.slot);
             }
         }
         Ok(())
     }
-    
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
@@ -146,7 +162,7 @@ impl SolanaEventListener {
     ) -> anyhow::Result<Self> {
         let event_parser = EventParser::new(&config.program_id)?;
         let (event_broadcaster, _) = broadcast::channel(1000);
-        
+
         Ok(Self {
             config,
             client,
@@ -166,10 +182,10 @@ impl SolanaEventListener {
         let mut event_receiver = self.event_broadcaster.subscribe();
         let handler = Arc::clone(&self.event_handler);
         let should_stop = Arc::clone(&self.should_stop);
-        
+
         tokio::spawn(async move {
             info!("🎯 Event processor started with broadcast channel");
-            
+
             loop {
                 tokio::select! {
                     event_result = event_receiver.recv() => {
@@ -197,10 +213,10 @@ impl SolanaEventListener {
                     }
                 }
             }
-            
+
             info!("🎯 Event processor stopped");
         });
-        
+
         Ok(())
     }
 
@@ -217,7 +233,7 @@ impl SolanaEventListener {
 
         tokio::spawn(async move {
             info!("🔄 Starting connection loop");
-            
+
             loop {
                 // Check if we should stop
                 if *should_stop.read().await {
@@ -236,7 +252,9 @@ impl SolanaEventListener {
                     &connection_state,
                     &should_stop,
                     &processed_signatures,
-                ).await {
+                )
+                .await
+                {
                     Ok(()) => {
                         info!("✅ WebSocket connection completed normally");
                         *reconnect_attempts.write().await = 0;
@@ -245,30 +263,36 @@ impl SolanaEventListener {
                         error!("❌ WebSocket connection failed: {}", e);
                         let mut attempts = reconnect_attempts.write().await;
                         *attempts += 1;
-                        
+
                         if *attempts > config.max_reconnect_attempts {
-                            error!("❌ Max reconnection attempts ({}) exceeded", config.max_reconnect_attempts);
+                            error!(
+                                "❌ Max reconnection attempts ({}) exceeded",
+                                config.max_reconnect_attempts
+                            );
                             *connection_state.write().await = ConnectionState::Disconnected;
                             break;
                         }
-                        
+
                         *connection_state.write().await = ConnectionState::Reconnecting;
-                        
+
                         // Exponential backoff with jitter
                         let base_delay = config.reconnect_interval;
-                        let exponential_delay = std::cmp::min(base_delay * 2_u64.pow((*attempts - 1).min(5)), 60);
+                        let exponential_delay =
+                            std::cmp::min(base_delay * 2_u64.pow((*attempts - 1).min(5)), 60);
                         let jitter = (rand::random::<f64>() * 2.0) as u64;
                         let delay = exponential_delay + jitter;
-                        
-                        warn!("🔄 Reconnection attempt {} of {} in {} seconds", 
-                             *attempts, config.max_reconnect_attempts, delay);
-                        
+
+                        warn!(
+                            "🔄 Reconnection attempt {} of {} in {} seconds",
+                            *attempts, config.max_reconnect_attempts, delay
+                        );
+
                         drop(attempts);
                         sleep(Duration::from_secs(delay)).await;
                     }
                 }
             }
-            
+
             *connection_state.write().await = ConnectionState::Disconnected;
             info!("🔄 Connection loop ended");
         });
@@ -288,9 +312,9 @@ impl SolanaEventListener {
     ) -> anyhow::Result<()> {
         let (ws_stream, _) = connect_async(&config.ws_url).await?;
         info!("🔗 WebSocket connected successfully");
-        
+
         *connection_state.write().await = ConnectionState::Connected;
-        
+
         let (mut write, mut read) = ws_stream.split();
 
         // Subscribe to program logs
@@ -321,20 +345,24 @@ impl SolanaEventListener {
         let ping_should_stop = Arc::clone(should_stop);
         let ping_config = config.clone();
         tokio::spawn(async move {
-            info!("💓 Starting ping task (every {} seconds)", ping_config.ping_interval_seconds);
-            let mut ping_interval = interval(Duration::from_secs(ping_config.ping_interval_seconds));
+            info!(
+                "💓 Starting ping task (every {} seconds)",
+                ping_config.ping_interval_seconds
+            );
+            let mut ping_interval =
+                interval(Duration::from_secs(ping_config.ping_interval_seconds));
             ping_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-            
+
             let mut consecutive_failures = 0u32;
             const MAX_PING_FAILURES: u32 = 3;
-            
+
             loop {
                 tokio::select! {
                     _ = ping_interval.tick() => {
                         if *ping_should_stop.read().await {
                             break;
                         }
-                        
+
                         let mut writer = ping_writer.lock().await;
                         match writer.send(Message::Ping(vec![])).await {
                             Ok(()) => {
@@ -344,7 +372,7 @@ impl SolanaEventListener {
                             Err(e) => {
                                 consecutive_failures += 1;
                                 warn!("💓 Ping failed ({}): {}", consecutive_failures, e);
-                                
+
                                 if consecutive_failures >= MAX_PING_FAILURES {
                                     error!("💓 Too many ping failures, connection seems dead");
                                     break;
@@ -386,7 +414,9 @@ impl SolanaEventListener {
                         &client_clone,
                         &processed_signatures_clone,
                         config,
-                    ).await {
+                    )
+                    .await
+                    {
                         error!("Failed to process WebSocket message: {}", e);
                     }
                 }
@@ -418,7 +448,7 @@ impl SolanaEventListener {
         // Stop ping task
         let _ = ping_stop_sender.send(());
         warn!("🎧 WebSocket message listener ended");
-        
+
         Ok(())
     }
 
@@ -432,9 +462,9 @@ impl SolanaEventListener {
         config: &SolanaConfig,
     ) -> anyhow::Result<()> {
         debug!("📨 Processing WebSocket message");
-        
+
         let json_msg: Value = serde_json::from_str(message)?;
-        
+
         // Check subscription confirmation
         if let Some(result) = json_msg.get("result") {
             if json_msg.get("params").is_none() {
@@ -442,15 +472,16 @@ impl SolanaEventListener {
                 return Ok(());
             }
         }
-        
+
         // Handle log notifications
         if let Some(params) = json_msg.get("params") {
             if let Some(result) = params.get("result") {
-                let slot = result.get("context")
+                let slot = result
+                    .get("context")
                     .and_then(|ctx| ctx.get("slot"))
                     .and_then(|s| s.as_u64())
                     .unwrap_or(0);
-                
+
                 if let Some(value) = result.get("value") {
                     let signature = match value.get("signature").and_then(|s| s.as_str()) {
                         Some(sig) => sig,
@@ -459,18 +490,22 @@ impl SolanaEventListener {
                             return Ok(());
                         }
                     };
-                    
+
                     // Check transaction success
                     let transaction_error = value.get("err");
-                    let is_transaction_success = transaction_error.is_none() || transaction_error == Some(&Value::Null);
-                    
+                    let is_transaction_success =
+                        transaction_error.is_none() || transaction_error == Some(&Value::Null);
+
                     if !is_transaction_success {
                         if let Some(error_detail) = transaction_error {
-                            debug!("❌ Transaction {} failed with error: {}", signature, error_detail);
+                            debug!(
+                                "❌ Transaction {} failed with error: {}",
+                                signature, error_detail
+                            );
                         } else {
                             debug!("❌ Transaction {} failed with unknown error", signature);
                         }
-                        
+
                         // Skip failed transactions unless explicitly configured to process them
                         if !config.process_failed_transactions {
                             debug!("⏭️ Skipping failed transaction {} (process_failed_transactions=false)", signature);
@@ -479,7 +514,7 @@ impl SolanaEventListener {
                             debug!("🔄 Processing failed transaction {} (process_failed_transactions=true)", signature);
                         }
                     }
-                    
+
                     // Check if already processed
                     {
                         let mut processed = processed_signatures.write().await;
@@ -489,7 +524,7 @@ impl SolanaEventListener {
                         }
                         processed.insert(signature.to_string());
                     }
-                    
+
                     // Process logs
                     if let Some(logs_array) = value.get("logs").and_then(|l| l.as_array()) {
                         let logs: Vec<String> = logs_array
@@ -497,9 +532,9 @@ impl SolanaEventListener {
                             .filter_map(|l| l.as_str())
                             .map(|s| s.to_string())
                             .collect();
-                        
+
                         let mut all_events = Vec::new();
-                        
+
                         // Parse events from logs
                         match event_parser.parse_events_with_call_stack(&logs, signature, slot) {
                             Ok(events) => {
@@ -509,31 +544,42 @@ impl SolanaEventListener {
                                 debug!("Failed to parse events from logs: {}", e);
                             }
                         }
-                        
+
                         // Handle CPI calls if needed
                         let has_cpi = logs.iter().any(|log| {
-                            log.contains("invoke [2]") || 
-                            log.contains("invoke [3]") ||
-                            log.contains("invoke [4]")
+                            log.contains("invoke [2]")
+                                || log.contains("invoke [3]")
+                                || log.contains("invoke [4]")
                         });
-                        
+
                         if has_cpi {
                             info!("Detected CPI calls, fetching full transaction details");
-                            
+
                             match client.get_transaction_with_logs(signature).await {
                                 Ok(tx_details) => {
-                                    if let Some(meta) = tx_details.get("meta").and_then(|m| m.as_object()) {
-                                        if let Some(full_logs) = meta.get("logMessages").and_then(|l| l.as_array()) {
+                                    if let Some(meta) =
+                                        tx_details.get("meta").and_then(|m| m.as_object())
+                                    {
+                                        if let Some(full_logs) =
+                                            meta.get("logMessages").and_then(|l| l.as_array())
+                                        {
                                             let full_log_strings: Vec<String> = full_logs
                                                 .iter()
                                                 .filter_map(|l| l.as_str())
                                                 .map(|s| s.to_string())
                                                 .collect();
-                                            
-                                            match event_parser.parse_events_with_call_stack(&full_log_strings, signature, slot) {
+
+                                            match event_parser.parse_events_with_call_stack(
+                                                &full_log_strings,
+                                                signature,
+                                                slot,
+                                            ) {
                                                 Ok(events) => {
                                                     for event in events {
-                                                        if !Self::event_exists_in_list(&all_events, &event) {
+                                                        if !Self::event_exists_in_list(
+                                                            &all_events,
+                                                            &event,
+                                                        ) {
                                                             all_events.push(event);
                                                         }
                                                     }
@@ -550,11 +596,15 @@ impl SolanaEventListener {
                                 }
                             }
                         }
-                        
+
                         // Broadcast events
                         if !all_events.is_empty() {
-                            info!("✅ Broadcasting {} events for transaction {}", all_events.len(), signature);
-                            
+                            info!(
+                                "✅ Broadcasting {} events for transaction {}",
+                                all_events.len(),
+                                signature
+                            );
+
                             for event in all_events {
                                 if let Err(e) = event_broadcaster.send(event) {
                                     error!("Failed to broadcast event: {}", e);
@@ -565,25 +615,31 @@ impl SolanaEventListener {
                 }
             }
         }
-        
+
         Ok(())
     }
-    
+
     fn event_exists_in_list(events: &[SpinPetEvent], new_event: &SpinPetEvent) -> bool {
-        events.iter().any(|e| {
-            Self::events_are_equal(e, new_event)
-        })
+        events.iter().any(|e| Self::events_are_equal(e, new_event))
     }
-    
+
     fn events_are_equal(e1: &SpinPetEvent, e2: &SpinPetEvent) -> bool {
         use SpinPetEvent::*;
         match (e1, e2) {
             (TokenCreated(a), TokenCreated(b)) => a.signature == b.signature,
             (BuySell(a), BuySell(b)) => a.signature == b.signature,
-            (LongShort(a), LongShort(b)) => a.signature == b.signature && a.order_pda == b.order_pda,
-            (PartialClose(a), PartialClose(b)) => a.signature == b.signature && a.order_pda == b.order_pda,
-            (FullClose(a), FullClose(b)) => a.signature == b.signature && a.order_pda == b.order_pda,
-            (ForceLiquidate(a), ForceLiquidate(b)) => a.signature == b.signature && a.order_pda == b.order_pda,
+            (LongShort(a), LongShort(b)) => {
+                a.signature == b.signature && a.order_pda == b.order_pda
+            }
+            (PartialClose(a), PartialClose(b)) => {
+                a.signature == b.signature && a.order_pda == b.order_pda
+            }
+            (FullClose(a), FullClose(b)) => {
+                a.signature == b.signature && a.order_pda == b.order_pda
+            }
+            (ForceLiquidate(a), ForceLiquidate(b)) => {
+                a.signature == b.signature && a.order_pda == b.order_pda
+            }
             (MilestoneDiscount(a), MilestoneDiscount(b)) => a.signature == b.signature,
             _ => false,
         }
@@ -594,7 +650,7 @@ impl SolanaEventListener {
         let processed_count = self.processed_signatures.read().await.len();
         let current_attempts = *self.reconnect_attempts.read().await;
         let connection_state = self.connection_state.read().await.clone();
-        
+
         serde_json::json!({
             "is_running": self.is_running,
             "connection_state": format!("{:?}", connection_state),
@@ -616,49 +672,49 @@ impl EventListener for SolanaEventListener {
             warn!("Event listener is already running");
             return Ok(());
         }
-        
+
         info!("🚀 Starting improved Solana event listener");
-        
+
         // Reset stop signal
         *self.should_stop.write().await = false;
-        
+
         // Check RPC connection
         if !self.client.check_connection().await? {
             return Err(anyhow::anyhow!("Cannot connect to Solana RPC"));
         }
-        
+
         // Start event processor
         self.start_event_processor().await?;
-        
+
         // Start connection loop
         self.connection_loop().await?;
-        
+
         self.is_running = true;
         info!("✅ Improved Solana event listener started successfully");
-        
+
         Ok(())
     }
-    
+
     async fn stop(&mut self) -> anyhow::Result<()> {
         if !self.is_running {
             warn!("Event listener is not running");
             return Ok(());
         }
-        
+
         info!("🛑 Stopping improved Solana event listener");
-        
+
         // Set stop signal
         *self.should_stop.write().await = true;
-        
+
         // Allow some time for graceful shutdown
         sleep(Duration::from_secs(2)).await;
-        
+
         self.is_running = false;
         info!("✅ Improved Solana event listener stopped successfully");
-        
+
         Ok(())
     }
-    
+
     fn is_running(&self) -> bool {
         self.is_running
     }
@@ -670,26 +726,20 @@ pub struct EventListenerManager {
 
 impl EventListenerManager {
     pub fn new() -> Self {
-        Self {
-            listener: None,
-        }
+        Self { listener: None }
     }
-    
+
     pub fn initialize(
         &mut self,
         config: SolanaConfig,
         client: Arc<SolanaClient>,
         event_handler: Arc<dyn EventHandler>,
     ) -> anyhow::Result<()> {
-        self.listener = Some(SolanaEventListener::new(
-            config, 
-            client, 
-            event_handler
-        )?);
-        
+        self.listener = Some(SolanaEventListener::new(config, client, event_handler)?);
+
         Ok(())
     }
-    
+
     pub async fn start(&mut self) -> anyhow::Result<()> {
         if let Some(listener) = &mut self.listener {
             listener.start().await
@@ -697,7 +747,7 @@ impl EventListenerManager {
             Err(anyhow::anyhow!("Event listener not initialized"))
         }
     }
-    
+
     #[allow(dead_code)]
     pub async fn stop(&mut self) -> anyhow::Result<()> {
         if let Some(listener) = &mut self.listener {
@@ -706,11 +756,11 @@ impl EventListenerManager {
             Ok(())
         }
     }
-    
+
     pub fn is_running(&self) -> bool {
         self.listener.as_ref().map_or(false, |l| l.is_running())
     }
-    
+
     #[allow(dead_code)]
     pub async fn get_connection_health(&self) -> Option<serde_json::Value> {
         if let Some(listener) = &self.listener {

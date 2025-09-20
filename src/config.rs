@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use std::env;
 
-#[derive(Debug, Deserialize, Clone)] 
+#[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     pub server: ServerConfig,
     pub cors: CorsConfig,
@@ -77,7 +77,7 @@ pub struct KlineServiceConfig {
 impl Config {
     pub fn new() -> anyhow::Result<Self> {
         let run_mode = env::var("RUST_ENV").unwrap_or_else(|_| "development".into());
-        
+
         let mut builder = config::Config::builder()
             .add_source(config::File::with_name("config/default"))
             .add_source(config::File::with_name(&format!("config/{}", run_mode)).required(false))
@@ -94,4 +94,4 @@ impl Config {
         let config: Config = settings.try_deserialize()?;
         Ok(config)
     }
-} 
+}

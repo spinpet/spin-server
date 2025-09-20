@@ -3,8 +3,8 @@ use axum::{
     response::Json as ResponseJson,
 };
 use chrono::{Local, Utc};
-use tracing::info;
 use std::sync::Arc;
+use tracing::info;
 
 use crate::models::*;
 use crate::services::{EventService, EventStorage, KlineSocketService};
@@ -31,16 +31,18 @@ pub struct AppState {
 pub async fn get_time(Query(params): Query<TimeQuery>) -> ResponseJson<ApiResponse<TimeResponse>> {
     let now_utc = Utc::now();
     let now_local = Local::now();
-    
+
     let format_str = params.format.as_deref().unwrap_or("%Y-%m-%d %H:%M:%S");
-    
+
     let time_response = TimeResponse {
         timestamp: now_utc.timestamp(),
         utc: now_utc.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
-        local: now_local.format(&format!("{} {}", format_str, "%Z")).to_string(),
+        local: now_local
+            .format(&format!("{} {}", format_str, "%Z"))
+            .to_string(),
         iso8601: now_utc.to_rfc3339(),
     };
-    
+
     info!("Time request completed: {}", time_response.local);
     ResponseJson(ApiResponse::success(time_response))
 }
@@ -59,7 +61,7 @@ pub async fn get_event_status(
 ) -> ResponseJson<ApiResponse<EventServiceStatus>> {
     let event_service = state.event_service.read().await;
     let status = event_service.get_status().await;
-    
+
     info!("Event service status query: running={}", status.is_running);
     ResponseJson(ApiResponse::success(status))
 }
@@ -78,7 +80,7 @@ pub async fn get_event_stats(
 ) -> ResponseJson<ApiResponse<EventStats>> {
     let event_service = state.event_service.read().await;
     let stats = event_service.get_stats().await;
-    
+
     info!("Event statistics query: total_events={}", stats.total);
     ResponseJson(ApiResponse::success(stats))
 }
@@ -118,4 +120,4 @@ pub async fn get_kline_status(
 }
 
 pub mod event_handlers;
-pub use event_handlers::*; 
+pub use event_handlers::*;
