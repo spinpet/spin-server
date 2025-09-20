@@ -1,13 +1,13 @@
-use crate::solana::{
-    SolanaClient, EventListenerManager, DefaultEventHandler, EventHandler, SpinPetEvent
-};
 use crate::config::SolanaConfig;
 use crate::services::event_storage::EventStorage;
+use crate::solana::{
+    DefaultEventHandler, EventHandler, EventListenerManager, SolanaClient, SpinPetEvent,
+};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, error};
-use serde::{Serialize, Deserialize};
-use chrono::{DateTime, Utc};
+use tracing::{error, info};
 use utoipa::ToSchema;
 
 /// Event service status
@@ -104,7 +104,7 @@ impl EventHandler for StatsEventHandler {
 
         Ok(())
     }
-    
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
@@ -124,23 +124,29 @@ impl EventService {
     /// Create a new event service with default StatsEventHandler
     #[allow(dead_code)]
     pub fn new(config: &crate::config::Config) -> anyhow::Result<Self> {
-        let _client = Arc::new(SolanaClient::new(&config.solana.rpc_url, &config.solana.program_id)?);
+        let _client = Arc::new(SolanaClient::new(
+            &config.solana.rpc_url,
+            &config.solana.program_id,
+        )?);
         let event_storage = Arc::new(EventStorage::new(config)?);
         let event_handler = Arc::new(StatsEventHandler::new(Arc::clone(&event_storage)));
-        
+
         Self::with_handler(config, Arc::clone(&event_handler) as Arc<dyn EventHandler>)
     }
-    
+
     /// Create a new event service with custom event handler
     #[allow(dead_code)]
     pub fn with_handler(
-        config: &crate::config::Config, 
-        event_handler: Arc<dyn EventHandler>
+        config: &crate::config::Config,
+        event_handler: Arc<dyn EventHandler>,
     ) -> anyhow::Result<Self> {
-        let client = Arc::new(SolanaClient::new(&config.solana.rpc_url, &config.solana.program_id)?);
+        let client = Arc::new(SolanaClient::new(
+            &config.solana.rpc_url,
+            &config.solana.program_id,
+        )?);
         let event_storage = Arc::new(EventStorage::new(config)?);
         let mut listener_manager = EventListenerManager::new();
-        
+
         // Initialize listener
         listener_manager.initialize(
             config.solana.clone(),
@@ -156,16 +162,19 @@ impl EventService {
             config: config.solana.clone(),
         })
     }
-    
+
     /// Create a new event service with custom event handler and shared storage
     pub fn with_handler_and_storage(
-        config: &crate::config::Config, 
+        config: &crate::config::Config,
         event_handler: Arc<dyn EventHandler>,
-        event_storage: Arc<EventStorage>
+        event_storage: Arc<EventStorage>,
     ) -> anyhow::Result<Self> {
-        let client = Arc::new(SolanaClient::new(&config.solana.rpc_url, &config.solana.program_id)?);
+        let client = Arc::new(SolanaClient::new(
+            &config.solana.rpc_url,
+            &config.solana.program_id,
+        )?);
         let mut listener_manager = EventListenerManager::new();
-        
+
         // Initialize listener
         listener_manager.initialize(
             config.solana.clone(),
@@ -190,7 +199,7 @@ impl EventService {
         }
 
         info!("🚀 Starting event service");
-        
+
         // Check Solana connection
         if !self.client.check_connection().await? {
             return Err(anyhow::anyhow!("Unable to connect to Solana network"));
@@ -198,7 +207,7 @@ impl EventService {
 
         // Start listener
         self.listener_manager.start().await?;
-        
+
         info!("✅ Event service started successfully");
         Ok(())
     }
@@ -214,23 +223,32 @@ impl EventService {
     /// Get service status
     pub async fn get_status(&self) -> EventServiceStatus {
         // Try to downcast to StatsEventHandler to get stats
-        let (stats, last_event_time) = if let Some(stats_handler) = 
-            self.event_handler.as_any().downcast_ref::<StatsEventHandler>() {
-            (stats_handler.get_stats().await, stats_handler.get_last_event_time().await)
+        let (stats, last_event_time) = if let Some(stats_handler) =
+            self.event_handler
+                .as_any()
+                .downcast_ref::<StatsEventHandler>()
+        {
+            (
+                stats_handler.get_stats().await,
+                stats_handler.get_last_event_time().await,
+            )
         } else {
             // If not a StatsEventHandler, use default values
-            (EventStats {
-                token_created: 0,
-                buy_sell: 0,
-                long_short: 0,
-                force_liquidate: 0,
-                full_close: 0,
-                partial_close: 0,
-                milestone_discount: 0,
-                total: 0,
-            }, None)
+            (
+                EventStats {
+                    token_created: 0,
+                    buy_sell: 0,
+                    long_short: 0,
+                    force_liquidate: 0,
+                    full_close: 0,
+                    partial_close: 0,
+                    milestone_discount: 0,
+                    total: 0,
+                },
+                None,
+            )
         };
-        
+
         let connection_status = match self.client.check_connection().await {
             Ok(true) => "Connected".to_string(),
             Ok(false) => "Connection failed".to_string(),
@@ -249,8 +267,11 @@ impl EventService {
     /// Get event statistics
     pub async fn get_stats(&self) -> EventStats {
         // Try to downcast to StatsEventHandler to get stats
-        if let Some(stats_handler) = 
-            self.event_handler.as_any().downcast_ref::<StatsEventHandler>() {
+        if let Some(stats_handler) = self
+            .event_handler
+            .as_any()
+            .downcast_ref::<StatsEventHandler>()
+        {
             stats_handler.get_stats().await
         } else {
             // If not a StatsEventHandler, use default values
@@ -300,7 +321,7 @@ mod tests {
             milestone_discount: 0,
             total: 0,
         };
-        
+
         assert_eq!(stats.total, 0);
     }
 
@@ -308,9 +329,12 @@ mod tests {
     async fn test_stats_event_handler() {
         // This is just a test stub, in real code we need to provide event_storage
         // Create a mock storage for testing
+        use crate::config::{
+            Config, CorsConfig, DatabaseConfig, IpfsConfig, KlineServiceConfig, LoggingConfig,
+            ServerConfig, SolanaConfig,
+        };
         use tempfile::TempDir;
-        use crate::config::{Config, DatabaseConfig, SolanaConfig, ServerConfig, CorsConfig, LoggingConfig, IpfsConfig, KlineServiceConfig};
-        
+
         let temp_dir = TempDir::new().unwrap();
         let config = Config {
             server: ServerConfig {
@@ -355,11 +379,11 @@ mod tests {
             },
         };
         let event_storage = Arc::new(EventStorage::new(&config).unwrap());
-        
+
         let handler = StatsEventHandler::new(event_storage);
         let initial_stats = handler.get_stats().await;
-        
+
         assert_eq!(initial_stats.total, 0);
         assert!(handler.get_last_event_time().await.is_none());
     }
-} 
+}

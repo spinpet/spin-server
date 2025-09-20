@@ -3,13 +3,16 @@ use axum::{
     http::StatusCode,
     response::Json,
 };
-use serde::{Deserialize};
+use serde::Deserialize;
 use std::sync::Arc;
 use utoipa::ToSchema;
 
-use crate::models::{ApiResponse, KlineQuery, KlineQueryResponse};
-use crate::services::event_storage::{EventQuery, EventQueryResponse, MintQuery, MintQueryResponse, OrderQuery, OrderQueryResponse, UserQuery, UserQueryResponse, MintDetailsQueryResponse};
 use crate::handlers::AppState;
+use crate::models::{ApiResponse, KlineQuery, KlineQueryResponse};
+use crate::services::event_storage::{
+    EventQuery, EventQueryResponse, MintDetailsQueryResponse, MintQuery, MintQueryResponse,
+    OrderQuery, OrderQueryResponse, UserQuery, UserQueryResponse,
+};
 use tracing::info;
 
 /// Event query parameters
@@ -69,7 +72,9 @@ pub struct UserQueryParams {
 
 /// Mint details query parameters
 #[derive(Debug, Deserialize, ToSchema)]
-#[schema(example = r#"{"mints": ["2M5dgwGNYHAC3CQVYiriY1DYC4GETDDb3ABWv3qsx3Jr", "3TcTZaiCMhCDF2PM7QBzX2aHFeJqLKJrd9LFGLugkr5x"]}"#)]
+#[schema(
+    example = r#"{"mints": ["2M5dgwGNYHAC3CQVYiriY1DYC4GETDDb3ABWv3qsx3Jr", "3TcTZaiCMhCDF2PM7QBzX2aHFeJqLKJrd9LFGLugkr5x"]}"#
+)]
 pub struct MintDetailsQueryParams {
     /// Token addresses
     pub mints: Vec<String>,
@@ -183,7 +188,9 @@ pub async fn query_mints(
     // Validate sort_by parameter
     if let Some(ref sort_by) = params.sort_by {
         if !matches!(sort_by.as_str(), "slot_asc" | "slot_desc") {
-            return Ok(Json(ApiResponse::error("sort_by must be 'slot_asc' or 'slot_desc'")));
+            return Ok(Json(ApiResponse::error(
+                "sort_by must be 'slot_asc' or 'slot_desc'",
+            )));
         }
     }
 
@@ -227,9 +234,11 @@ pub async fn query_orders(
     }
 
     if !matches!(params.order_type.as_str(), "up_orders" | "down_orders") {
-        return Ok(Json(ApiResponse::error("type parameter must be 'up_orders' or 'down_orders'")));
+        return Ok(Json(ApiResponse::error(
+            "type parameter must be 'up_orders' or 'down_orders'",
+        )));
     }
-    
+
     let limit = params.limit.unwrap_or(50);
     if limit > 1000 {
         return Ok(Json(ApiResponse::error("limit cannot exceed 1000")));
@@ -326,21 +335,22 @@ pub async fn query_mint_details(
 ) -> Result<Json<ApiResponse<MintDetailsQueryResponse>>, StatusCode> {
     // Extract mint accounts from params
     let mut mint_accounts = params.mints;
-    
+
     if mint_accounts.is_empty() {
         return Ok(Json(ApiResponse::error("mints parameter cannot be empty")));
     }
 
     // Limit to 1000 mint addresses
     if mint_accounts.len() > 1000 {
-        tracing::warn!("Too many mint addresses requested: {}, limiting to 1000", mint_accounts.len());
+        tracing::warn!(
+            "Too many mint addresses requested: {}, limiting to 1000",
+            mint_accounts.len()
+        );
         mint_accounts = mint_accounts[0..1000].to_vec();
     }
 
     // Build query
-    let query = crate::services::MintDetailsQuery {
-        mint_accounts,
-    };
+    let query = crate::services::MintDetailsQuery { mint_accounts };
 
     // Execute query
     match state.event_storage.query_mint_details(query).await {
@@ -389,7 +399,9 @@ pub async fn query_user_orders(
     // Validate order_by parameter
     if let Some(ref order_by) = params.order_by {
         if !matches!(order_by.as_str(), "start_time_asc" | "start_time_desc") {
-            return Ok(Json(ApiResponse::error("order_by must be 'start_time_asc' or 'start_time_desc'")));
+            return Ok(Json(ApiResponse::error(
+                "order_by must be 'start_time_asc' or 'start_time_desc'",
+            )));
         }
     }
 
@@ -405,7 +417,11 @@ pub async fn query_user_orders(
     // Execute query
     match state.event_storage.query_user_orders(query).await {
         Ok(response) => {
-            tracing::info!("User orders query: found {} orders for user {}", response.total, response.user);
+            tracing::info!(
+                "User orders query: found {} orders for user {}",
+                response.total,
+                response.user
+            );
             Ok(Json(ApiResponse::success(response)))
         }
         Err(e) => {
@@ -477,13 +493,15 @@ pub async fn test_ipfs_functionality(
     });
 
     // Process the event to trigger IPFS fetching
-    match state.event_storage.process_event_for_mint_detail(&fake_event).await {
-        Ok(_) => {
-            Ok(Json(ApiResponse::success(format!(
-                "Test token created with mint_account: {}. IPFS URI fetching triggered in background.", 
-                params.mint_account
-            ))))
-        }
+    match state
+        .event_storage
+        .process_event_for_mint_detail(&fake_event)
+        .await
+    {
+        Ok(_) => Ok(Json(ApiResponse::success(format!(
+            "Test token created with mint_account: {}. IPFS URI fetching triggered in background.",
+            params.mint_account
+        )))),
         Err(e) => {
             tracing::error!("Failed to process test event: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -505,6 +523,27 @@ pub struct TestOrderParams {
     pub user: String,
     pub mint_account: String,
     pub order_pda: String,
+}
+
+/// Create test order for testing purposes
+pub async fn create_test_order(
+    State(state): State<Arc<AppState>>,
+    Json(params): Json<TestOrderParams>,
+) -> Result<Json<ApiResponse<String>>, StatusCode> {
+    match state.event_storage.create_test_order_data(
+        &params.user,
+        &params.mint_account,
+        &params.order_pda,
+    ) {
+        Ok(_) => Ok(Json(ApiResponse::success(format!(
+            "Test order created successfully: user={}, mint={}, order_pda={}",
+            params.user, params.mint_account, params.order_pda
+        )))),
+        Err(e) => {
+            tracing::error!("Failed to create test order: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
 }
 
 /// Query kline data
@@ -529,7 +568,9 @@ pub async fn query_kline_data(
     }
 
     if !matches!(params.interval.as_str(), "s1" | "s30" | "m5") {
-        return Ok(Json(ApiResponse::error("interval parameter must be one of: s1, s30, m5")));
+        return Ok(Json(ApiResponse::error(
+            "interval parameter must be one of: s1, s30, m5",
+        )));
     }
 
     let limit = params.limit.unwrap_or(50);
@@ -545,7 +586,9 @@ pub async fn query_kline_data(
     // Validate order_by parameter
     if let Some(ref order_by) = params.order_by {
         if !matches!(order_by.as_str(), "time_asc" | "time_desc") {
-            return Ok(Json(ApiResponse::error("order_by must be 'time_asc' or 'time_desc'")));
+            return Ok(Json(ApiResponse::error(
+                "order_by must be 'time_asc' or 'time_desc'",
+            )));
         }
     }
 
@@ -561,8 +604,12 @@ pub async fn query_kline_data(
     // Execute query
     match state.event_storage.query_kline_data(query).await {
         Ok(response) => {
-            tracing::info!("Kline query: found {} klines for mint {} interval {}", 
-                response.klines.len(), response.mint_account, response.interval);
+            tracing::info!(
+                "Kline query: found {} klines for mint {} interval {}",
+                response.klines.len(),
+                response.mint_account,
+                response.interval
+            );
             Ok(Json(ApiResponse::success(response)))
         }
         Err(e) => {
@@ -587,7 +634,7 @@ pub async fn get_kline_subscriptions(
     State(app_state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, StatusCode> {
     info!("Getting K-line subscription details");
-    
+
     // 检查 K-line 服务是否在运行
     match &app_state.kline_service {
         Some(kline_service) => {
@@ -606,4 +653,4 @@ pub async fn get_kline_subscriptions(
             Ok(Json(ApiResponse::success(empty_response)))
         }
     }
-} 
+}

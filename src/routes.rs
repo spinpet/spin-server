@@ -1,16 +1,16 @@
+use axum::response::Html;
 use axum::{
     routing::{get, post},
     Router,
 };
-use tower_http::cors::{CorsLayer, Any};
+use std::sync::Arc;
+use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
-use axum::response::Html;
-use std::sync::Arc;
 
+use crate::config::Config;
 use crate::handlers::{self, AppState};
 use crate::models::*;
-use crate::config::Config;
 
 // OpenAPI documentation definition
 #[derive(OpenApi)]
@@ -87,47 +87,37 @@ pub fn create_router(config: &Config, app_state: Arc<AppState>) -> Router {
     let app = Router::new()
         // API routes
         .route("/api/time", get(handlers::get_time))
-        
         // Event-related routes
         .route("/api/events/status", get(handlers::get_event_status))
         .route("/api/events/stats", get(handlers::get_event_stats))
-        
         // Event query routes
         .route("/api/events", get(handlers::query_events))
         .route("/api/events/db-stats", get(handlers::get_db_stats))
-        
         // Mint query routes
         .route("/api/mints", get(handlers::query_mints))
-        
         // Mint details query route
         .route("/api/details", post(handlers::query_mint_details))
-        
         // Order query routes
         .route("/api/mint_orders", get(handlers::query_orders))
-        
         // User transaction query routes
         .route("/api/user_event", get(handlers::query_user_transactions))
-        
         // User order query routes
         .route("/api/user_orders", get(handlers::query_user_orders))
-        
         // Kline query routes
         .route("/api/kline", get(handlers::query_kline_data))
         .route("/api/kline/status", get(handlers::get_kline_status))
-        .route("/api/kline/subscriptions", get(handlers::get_kline_subscriptions))
-        
+        .route(
+            "/api/kline/subscriptions",
+            get(handlers::get_kline_subscriptions),
+        )
         // Test IPFS functionality
         .route("/api/test-ipfs", post(handlers::test_ipfs_functionality))
-        
         // Test order creation
         .route("/api/test-order", post(handlers::create_test_order))
-        
         // OpenAPI specification
         .route("/api-docs/openapi.json", get(serve_openapi))
-        
         // Swagger UI
         .route("/swagger-ui", get(serve_swagger_ui))
-        
         // Add application state
         .with_state(app_state);
 
@@ -199,18 +189,18 @@ async fn serve_swagger_ui() -> Html<String> {
 
 fn create_cors_layer(allow_origins: &[String]) -> CorsLayer {
     use axum::http::{HeaderName, Method};
-    
+
     if allow_origins.contains(&"*".to_string()) {
         CorsLayer::new()
             .allow_origin(Any)
             .allow_methods([
-                Method::GET, 
-                Method::POST, 
-                Method::PUT, 
-                Method::DELETE, 
+                Method::GET,
+                Method::POST,
+                Method::PUT,
+                Method::DELETE,
                 Method::OPTIONS,
                 Method::HEAD,
-                Method::PATCH
+                Method::PATCH,
             ])
             .allow_headers([
                 HeaderName::from_static("content-type"),
@@ -238,17 +228,17 @@ fn create_cors_layer(allow_origins: &[String]) -> CorsLayer {
             .iter()
             .filter_map(|origin| origin.parse().ok())
             .collect();
-        
+
         CorsLayer::new()
             .allow_origin(origins)
             .allow_methods([
-                Method::GET, 
-                Method::POST, 
-                Method::PUT, 
-                Method::DELETE, 
+                Method::GET,
+                Method::POST,
+                Method::PUT,
+                Method::DELETE,
                 Method::OPTIONS,
                 Method::HEAD,
-                Method::PATCH
+                Method::PATCH,
             ])
             .allow_headers([
                 HeaderName::from_static("content-type"),
@@ -272,4 +262,4 @@ fn create_cors_layer(allow_origins: &[String]) -> CorsLayer {
             .allow_credentials(true)
             .max_age(std::time::Duration::from_secs(86400)) // 24 hours
     }
-} 
+}
