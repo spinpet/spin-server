@@ -57,11 +57,13 @@ impl KlineConfig {
 /// 客户端连接信息
 #[derive(Debug, Clone)]
 pub struct ClientConnection {
+    #[allow(dead_code)]
     pub socket_id: String,
     pub subscriptions: HashSet<String>,        // "mint:interval" 格式
     pub last_activity: Instant,               // 最后活动时间
     pub connection_time: Instant,             // 连接建立时间
     pub subscription_count: usize,            // 当前订阅数量
+    #[allow(dead_code)]
     pub user_agent: Option<String>,           // 客户端信息
     pub kline_data_sent_count: u64,          // kline_data 发送次数
     pub history_data_sent_count: u64,        // history_data 发送次数
