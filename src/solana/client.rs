@@ -80,6 +80,7 @@ impl SolanaClient {
     }
 
     /// Create a new Solana client with custom reconnection settings
+    #[allow(dead_code)]
     pub fn new_with_config(
         rpc_url: &str, 
         program_id: &str,
