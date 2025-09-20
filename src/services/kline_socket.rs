@@ -24,6 +24,7 @@ use crate::solana::EventHandler;
 pub struct KlineConfig {
     pub connection_timeout: Duration,          // 连接超时时间 (默认60秒)
     pub max_subscriptions_per_client: usize,  // 每客户端最大订阅数 (默认100)
+    #[allow(dead_code)]
     pub history_data_limit: usize,             // 历史数据默认条数 (默认100)
     pub ping_interval: Duration,               // 心跳间隔 (默认25秒)
     pub ping_timeout: Duration,                // 心跳超时 (默认60秒)
