@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'http://localhost:5051';
 
 async function testUserOrdersAPI() {
     console.log('🧪 Testing User Orders API...\n');
