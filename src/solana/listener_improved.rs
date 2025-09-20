@@ -711,6 +711,7 @@ impl EventListenerManager {
         self.listener.as_ref().map_or(false, |l| l.is_running())
     }
     
+    #[allow(dead_code)]
     pub async fn get_connection_health(&self) -> Option<serde_json::Value> {
         if let Some(listener) = &self.listener {
             Some(listener.get_connection_health().await)
