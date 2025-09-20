@@ -236,6 +236,7 @@ impl SolanaClient {
     }
 
     /// Get program logs with automatic reconnection
+    #[allow(dead_code)]
     pub async fn get_program_logs(&self, _limit: usize) -> Result<Vec<String>> {
         let program_id = self.program_id;
         self.execute_with_retry(move |client| {
