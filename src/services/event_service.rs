@@ -132,6 +132,7 @@ impl EventService {
     }
     
     /// Create a new event service with custom event handler
+    #[allow(dead_code)]
     pub fn with_handler(
         config: &crate::config::Config, 
         event_handler: Arc<dyn EventHandler>
