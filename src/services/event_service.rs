@@ -1,7 +1,7 @@
 use crate::solana::{
     SolanaClient, EventListenerManager, DefaultEventHandler, EventHandler, SpinPetEvent
 };
-use crate::config::{SolanaConfig, DatabaseConfig};
+use crate::config::SolanaConfig;
 use crate::services::event_storage::EventStorage;
 use std::sync::Arc;
 use tokio::sync::RwLock;
