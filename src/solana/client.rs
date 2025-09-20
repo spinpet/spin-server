@@ -365,6 +365,7 @@ impl SolanaClient {
     }
 
     /// Get program ID
+    #[allow(dead_code)]
     pub fn get_program_id(&self) -> &Pubkey {
         &self.program_id
     }
