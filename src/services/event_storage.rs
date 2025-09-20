@@ -1508,6 +1508,71 @@ impl EventStorage {
         })
     }
 
+    /// Get mint detail information for a mint account
+    fn get_mint_detail(&self, mint_account: &str) -> Result<Option<MintDetailData>> {
+        let key = self.generate_mint_detail_key(mint_account);
+        if let Some(data) = self.db.get(key.as_bytes())? {
+            match serde_json::from_slice::<MintDetailData>(&data) {
+                Ok(detail) => Ok(Some(detail)),
+                Err(e) => {
+                    error!("❌ Failed to parse mint detail data: {}, mint: {}", e, mint_account);
+                    Ok(None)
+                }
+            }
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Enrich order data with token information
+    fn enrich_order_with_token_info(&self, mut order: OrderData) -> OrderData {
+        match self.get_mint_detail(&order.mint) {
+            Ok(Some(mint_detail)) => {
+                // Fill token information from mint detail
+                order.latest_price = mint_detail.latest_price.unwrap_or(0);
+                order.latest_trade_time = mint_detail.latest_trade_time.unwrap_or(0);
+                
+                // Prioritize MintDetailData.name/symbol over uri_data
+                order.name = mint_detail.name.unwrap_or_else(|| {
+                    mint_detail.uri_data
+                        .as_ref()
+                        .and_then(|uri| uri.name.clone())
+                        .unwrap_or_default()
+                });
+                
+                order.symbol = mint_detail.symbol.unwrap_or_else(|| {
+                    mint_detail.uri_data
+                        .as_ref()
+                        .and_then(|uri| uri.symbol.clone())
+                        .unwrap_or_default()
+                });
+                
+                order.image = mint_detail.uri_data
+                    .as_ref()
+                    .and_then(|uri| uri.image.clone())
+                    .unwrap_or_default();
+            }
+            Ok(None) => {
+                // Set default values if mint detail not found
+                order.latest_price = 0;
+                order.latest_trade_time = 0;
+                order.name = String::new();
+                order.symbol = String::new();
+                order.image = String::new();
+            }
+            Err(e) => {
+                error!("❌ Failed to get mint detail for {}: {}", order.mint, e);
+                // Set default values on error
+                order.latest_price = 0;
+                order.latest_trade_time = 0;
+                order.name = String::new();
+                order.symbol = String::new();
+                order.image = String::new();
+            }
+        }
+        order
+    }
+
     /// Query user order information
     pub async fn query_user_orders(&self, query: UserOrderQuery) -> Result<UserOrderQueryResponse> {
         let user = &query.user;
@@ -1537,16 +1602,56 @@ impl EventStorage {
                 break;
             }
             
-            // Parse order data
-            match serde_json::from_slice::<OrderData>(&value) {
-                Ok(order_data) => {
-                    all_orders.push(order_data);
+            // Parse order data - handle both old and new format
+            let mut order_data = match serde_json::from_slice::<serde_json::Value>(&value) {
+                Ok(json_value) => {
+                    // Try to parse as new format first
+                    if let Ok(order) = serde_json::from_value::<OrderData>(json_value.clone()) {
+                        order
+                    } else {
+                        // Parse as old format and add default token info
+                        match serde_json::from_value::<serde_json::Value>(json_value) {
+                            Ok(old_order) => {
+                                let mut new_order = OrderData {
+                                    order_type: old_order.get("order_type").and_then(|v| v.as_u64()).unwrap_or(0) as u8,
+                                    mint: old_order.get("mint").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                    user: old_order.get("user").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                    lock_lp_start_price: old_order.get("lock_lp_start_price").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()).unwrap_or(0),
+                                    lock_lp_end_price: old_order.get("lock_lp_end_price").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()).unwrap_or(0),
+                                    lock_lp_sol_amount: old_order.get("lock_lp_sol_amount").and_then(|v| v.as_u64()).unwrap_or(0),
+                                    lock_lp_token_amount: old_order.get("lock_lp_token_amount").and_then(|v| v.as_u64()).unwrap_or(0),
+                                    start_time: old_order.get("start_time").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+                                    end_time: old_order.get("end_time").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+                                    margin_sol_amount: old_order.get("margin_sol_amount").and_then(|v| v.as_u64()).unwrap_or(0),
+                                    borrow_amount: old_order.get("borrow_amount").and_then(|v| v.as_u64()).unwrap_or(0),
+                                    position_asset_amount: old_order.get("position_asset_amount").and_then(|v| v.as_u64()).unwrap_or(0),
+                                    borrow_fee: old_order.get("borrow_fee").and_then(|v| v.as_u64()).unwrap_or(0) as u16,
+                                    order_pda: old_order.get("order_pda").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                    // Initialize new fields with defaults
+                                    latest_price: 0,
+                                    latest_trade_time: 0,
+                                    name: String::new(),
+                                    symbol: String::new(),
+                                    image: String::new(),
+                                };
+                                new_order
+                            }
+                            Err(e) => {
+                                error!("❌ Failed to parse old order format: {}, key: {}", e, key_str);
+                                continue;
+                            }
+                        }
+                    }
                 }
                 Err(e) => {
                     error!("❌ Failed to parse user order data: {}, key: {}", e, key_str);
                     continue;
                 }
-            }
+            };
+            
+            // Enrich with token information
+            order_data = self.enrich_order_with_token_info(order_data);
+            all_orders.push(order_data);
         }
         
         // Sort by start_time
