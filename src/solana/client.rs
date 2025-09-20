@@ -47,7 +47,6 @@ impl Default for ConnectionStats {
 /// Solana RPC client wrapper with reconnection capabilities
 pub struct SolanaClient {
     rpc_url: String,
-    program_id: Pubkey,
     client: Arc<RwLock<RpcClient>>,
     connection_state: Arc<RwLock<ConnectionState>>,
     stats: Arc<RwLock<ConnectionStats>>,
