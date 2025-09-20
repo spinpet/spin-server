@@ -47,6 +47,7 @@ impl Default for ConnectionStats {
 /// Solana RPC client wrapper with reconnection capabilities
 pub struct SolanaClient {
     rpc_url: String,
+    #[allow(dead_code)]
     program_id: Pubkey,
     client: Arc<RwLock<RpcClient>>,
     connection_state: Arc<RwLock<ConnectionState>>,
@@ -79,6 +80,7 @@ impl SolanaClient {
     }
 
     /// Create a new Solana client with custom reconnection settings
+    #[allow(dead_code)]
     pub fn new_with_config(
         rpc_url: &str, 
         program_id: &str,
@@ -224,6 +226,7 @@ impl SolanaClient {
     }
 
     /// Get latest slot with automatic reconnection
+    #[allow(dead_code)]
     pub async fn get_latest_slot(&self) -> Result<u64> {
         self.execute_with_retry(|client| {
             let slot = client.get_slot()?;
@@ -233,6 +236,7 @@ impl SolanaClient {
     }
 
     /// Get program logs with automatic reconnection
+    #[allow(dead_code)]
     pub async fn get_program_logs(&self, _limit: usize) -> Result<Vec<String>> {
         let program_id = self.program_id;
         self.execute_with_retry(move |client| {
@@ -255,6 +259,7 @@ impl SolanaClient {
     }
 
     /// Get transaction details with automatic reconnection
+    #[allow(dead_code)]
     pub async fn get_transaction_details(&self, signature: &str) -> Result<Option<TransactionDetails>> {
         let signature_str = signature.to_string();
         self.execute_with_retry(move |client| {
@@ -341,27 +346,32 @@ impl SolanaClient {
     }
 
     /// Force reconnection (useful for manual recovery)
+    #[allow(dead_code)]
     pub async fn force_reconnect(&self) -> Result<()> {
         info!("🔄 Force reconnecting RPC client");
         self.reconnect().await
     }
 
     /// Get current connection state
+    #[allow(dead_code)]
     pub async fn get_connection_state(&self) -> ConnectionState {
         self.connection_state.read().await.clone()
     }
 
     /// Get connection statistics
+    #[allow(dead_code)]
     pub async fn get_connection_stats(&self) -> ConnectionStats {
         self.stats.read().await.clone()
     }
 
     /// Get program ID
+    #[allow(dead_code)]
     pub fn get_program_id(&self) -> &Pubkey {
         &self.program_id
     }
 
     /// Check if client is currently connected
+    #[allow(dead_code)]
     pub async fn is_connected(&self) -> bool {
         matches!(*self.connection_state.read().await, ConnectionState::Connected)
     }
@@ -369,6 +379,7 @@ impl SolanaClient {
 
 /// Transaction details structure
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TransactionDetails {
     pub signature: String,
     pub slot: u64,

@@ -5,7 +5,6 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::collections::{HashMap, HashSet};
 use tokio::sync::RwLock;
-use tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use socketioxide::SocketIo;
 use socketioxide::extract::{Data, SocketRef};
@@ -25,6 +24,7 @@ use crate::solana::EventHandler;
 pub struct KlineConfig {
     pub connection_timeout: Duration,          // 连接超时时间 (默认60秒)
     pub max_subscriptions_per_client: usize,  // 每客户端最大订阅数 (默认100)
+    #[allow(dead_code)]
     pub history_data_limit: usize,             // 历史数据默认条数 (默认100)
     pub ping_interval: Duration,               // 心跳间隔 (默认25秒)
     pub ping_timeout: Duration,                // 心跳超时 (默认60秒)
@@ -57,11 +57,13 @@ impl KlineConfig {
 /// 客户端连接信息
 #[derive(Debug, Clone)]
 pub struct ClientConnection {
+    #[allow(dead_code)]
     pub socket_id: String,
     pub subscriptions: HashSet<String>,        // "mint:interval" 格式
     pub last_activity: Instant,               // 最后活动时间
     pub connection_time: Instant,             // 连接建立时间
     pub subscription_count: usize,            // 当前订阅数量
+    #[allow(dead_code)]
     pub user_agent: Option<String>,           // 客户端信息
     pub kline_data_sent_count: u64,          // kline_data 发送次数
     pub history_data_sent_count: u64,        // history_data 发送次数
@@ -240,6 +242,7 @@ pub struct HistoryRequest {
     pub symbol: String,
     pub interval: String,
     pub limit: Option<usize>,
+    #[allow(dead_code)]
     pub from: Option<u64>,                   // 开始时间戳（秒）
 }
 

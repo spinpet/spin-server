@@ -1,7 +1,7 @@
 use crate::solana::{
     SolanaClient, EventListenerManager, DefaultEventHandler, EventHandler, SpinPetEvent
 };
-use crate::config::{SolanaConfig, DatabaseConfig};
+use crate::config::SolanaConfig;
 use crate::services::event_storage::EventStorage;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -115,14 +115,16 @@ pub struct EventService {
     client: Arc<SolanaClient>,
     listener_manager: EventListenerManager,
     event_handler: Arc<dyn EventHandler>,
+    #[allow(dead_code)]
     event_storage: Arc<EventStorage>,
     config: SolanaConfig,
 }
 
 impl EventService {
     /// Create a new event service with default StatsEventHandler
+    #[allow(dead_code)]
     pub fn new(config: &crate::config::Config) -> anyhow::Result<Self> {
-        let client = Arc::new(SolanaClient::new(&config.solana.rpc_url, &config.solana.program_id)?);
+        let _client = Arc::new(SolanaClient::new(&config.solana.rpc_url, &config.solana.program_id)?);
         let event_storage = Arc::new(EventStorage::new(config)?);
         let event_handler = Arc::new(StatsEventHandler::new(Arc::clone(&event_storage)));
         
@@ -130,6 +132,7 @@ impl EventService {
     }
     
     /// Create a new event service with custom event handler
+    #[allow(dead_code)]
     pub fn with_handler(
         config: &crate::config::Config, 
         event_handler: Arc<dyn EventHandler>
@@ -275,6 +278,7 @@ impl EventService {
     }
 
     /// Get event storage
+    #[allow(dead_code)]
     pub fn get_event_storage(&self) -> Arc<EventStorage> {
         Arc::clone(&self.event_storage)
     }
