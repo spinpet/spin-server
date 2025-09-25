@@ -604,6 +604,77 @@ impl KlineSocketService {
         });
     }
 
+    /// 广播交易事件到订阅者
+    pub async fn broadcast_event_update(
+        &self,
+        event: &SpinPetEvent,
+    ) -> Result<()> {
+        let mint_account = self.get_mint_account_from_event(event);
+        info!("📡 Broadcasting event update for mint: {}", mint_account);
+
+        // 获取所有订阅了该 mint 的房间
+        let mut rooms_to_broadcast = Vec::new();
+        {
+            let manager = self.subscriptions.read().await;
+            if let Some(interval_map) = manager.mint_subscribers.get(&mint_account) {
+                for interval in interval_map.keys() {
+                    let room_name = format!("kline:{}:{}", mint_account, interval);
+                    rooms_to_broadcast.push(room_name);
+                }
+            }
+        }
+
+        if rooms_to_broadcast.is_empty() {
+            debug!("🚫 No subscribers for mint: {}, skipping event broadcast", mint_account);
+            return Ok(());
+        }
+
+        let event_type_name = get_event_type_name(event);
+        let event_message = EventUpdateMessage {
+            symbol: mint_account.clone(),
+            event_type: event_type_name,
+            event_data: event.clone(),
+            timestamp: Utc::now().timestamp_millis() as u64,
+        };
+
+        info!("📡 Broadcasting to {} rooms for event: {:?}", rooms_to_broadcast.len(), event_message.event_type);
+
+        // 广播到所有相关房间
+        for room_name in rooms_to_broadcast {
+            let result = self
+                .socketio
+                .of("/kline")
+                .ok_or_else(|| anyhow::anyhow!("Namespace /kline not found"))?
+                .to(room_name.clone())
+                .emit("event_data", &event_message)
+                .await;
+
+            match result {
+                Ok(_) => {
+                    info!("✅ Successfully broadcasted event to room {}", room_name);
+                }
+                Err(e) => {
+                    warn!("❌ Failed to broadcast event to room {}: {}", room_name, e);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// 从事件中获取 mint_account
+    fn get_mint_account_from_event(&self, event: &SpinPetEvent) -> String {
+        match event {
+            SpinPetEvent::TokenCreated(e) => e.mint_account.clone(),
+            SpinPetEvent::BuySell(e) => e.mint_account.clone(),
+            SpinPetEvent::LongShort(e) => e.mint_account.clone(),
+            SpinPetEvent::ForceLiquidate(e) => e.mint_account.clone(),
+            SpinPetEvent::FullClose(e) => e.mint_account.clone(),
+            SpinPetEvent::PartialClose(e) => e.mint_account.clone(),
+            SpinPetEvent::MilestoneDiscount(e) => e.mint_account.clone(),
+        }
+    }
+
     /// 广播K线更新到订阅者
     pub async fn broadcast_kline_update(
         &self,
