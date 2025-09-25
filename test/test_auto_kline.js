@@ -10,7 +10,7 @@ const axios = require('axios');
 const SERVER_URL = 'http://192.168.18.5:5051';
 const INTERVAL = 's30';
 
-let currentMint = null;
+let currentMint = null; 
 let socket = null;
 
 console.log('🚀 启动自动 mint 监听...');
