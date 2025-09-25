@@ -419,7 +419,7 @@ impl KlineSocketService {
                                 info!("📋 Total active connections: {}", manager.connections.len());
                             }
 
-                            // 推送历史数据
+                            // 推送历史K线数据
                             if let Ok(history) =
                                 get_kline_history(&event_storage, &data.symbol, &data.interval, 100)
                                     .await
@@ -438,6 +438,34 @@ impl KlineSocketService {
                                         }
                                     }
                                 }
+                            }
+
+                            // 推送历史交易事件数据 (300条)
+                            info!("📡 Sending historical event data for mint: {}", data.symbol);
+                            if let Ok(event_history) =
+                                get_event_history(&event_storage, &data.symbol, 300).await
+                            {
+                                if let Err(e) = socket.emit("history_event_data", &event_history) {
+                                    warn!("Failed to send history event data: {}", e);
+                                } else {
+                                    info!(
+                                        "✅ Successfully sent {} historical events for mint: {}",
+                                        event_history.data.len(),
+                                        data.symbol
+                                    );
+                                    // 更新历史数据发送计数
+                                    {
+                                        let mut manager = subscriptions.write().await;
+                                        if let Some(client) =
+                                            manager.connections.get_mut(&socket.id.to_string())
+                                        {
+                                            client.history_data_sent_count += 1;
+                                            client.total_messages_sent += 1;
+                                        }
+                                    }
+                                }
+                            } else {
+                                warn!("❌ Failed to get historical event data for mint: {}", data.symbol);
                             }
 
                             // 确认订阅成功
