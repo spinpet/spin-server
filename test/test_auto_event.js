@@ -113,6 +113,7 @@ function connectAndSubscribe(mint) {
 
     // 监听实时事件数据
     socket.on('event_data', (data) => {
+        console.log('处理了 event_data');
         return
         console.log('\n🔔 收到实时事件数据:');
         console.log(`   Symbol: ${data.symbol}`);
