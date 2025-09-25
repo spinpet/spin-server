@@ -225,6 +225,24 @@ pub struct KlineHistoryResponse {
     pub total_count: usize,
 }
 
+/// 交易事件推送消息
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct EventUpdateMessage {
+    pub symbol: String,                  // mint_account
+    pub event_type: String,              // event type name
+    pub event_data: SpinPetEvent,        // complete event data
+    pub timestamp: u64,                  // push timestamp (milliseconds)
+}
+
+/// 历史交易事件响应
+#[derive(Debug, Serialize, ToSchema)]
+pub struct EventHistoryResponse {
+    pub symbol: String,
+    pub data: Vec<EventUpdateMessage>,
+    pub has_more: bool,
+    pub total_count: usize,
+}
+
 /// Socket.IO 请求消息
 #[derive(Debug, Deserialize)]
 pub struct SubscribeRequest {
