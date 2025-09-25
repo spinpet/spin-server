@@ -113,6 +113,7 @@ function connectAndSubscribe(mint) {
 
     // 监听实时事件数据
     socket.on('event_data', (data) => {
+        return
         console.log('\n🔔 收到实时事件数据:');
         console.log(`   Symbol: ${data.symbol}`);
         console.log(`   事件类型: ${data.event_type}`);
@@ -166,6 +167,7 @@ function connectAndSubscribe(mint) {
 
     // 捕获所有其他事件
     socket.onAny((eventName, ...args) => {
+        //return
         if (!['history_data', 'kline_data', 'direct_kline_test'].includes(eventName)) {
             console.log(`🎯 收到其他事件: ${eventName}`, {
                 eventName,

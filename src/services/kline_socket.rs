@@ -920,6 +920,58 @@ async fn get_kline_history(
     })
 }
 
+/// 获取历史交易事件数据
+async fn get_event_history(
+    event_storage: &Arc<EventStorage>,
+    symbol: &str,
+    limit: usize,
+) -> Result<EventHistoryResponse> {
+    use crate::services::event_storage::EventQuery;
+    
+    let query = EventQuery {
+        mint_account: symbol.to_string(),
+        page: Some(1),
+        limit: Some(limit),
+        order_by: Some("slot_desc".to_string()), // slot 从大到小排列
+    };
+
+    let response = event_storage.query_events(query).await?;
+
+    let data: Vec<EventUpdateMessage> = response
+        .events
+        .into_iter()
+        .map(|event| {
+            let event_type_name = get_event_type_name(&event);
+            EventUpdateMessage {
+                symbol: symbol.to_string(),
+                event_type: event_type_name,
+                event_data: event,
+                timestamp: Utc::now().timestamp_millis() as u64,
+            }
+        })
+        .collect();
+
+    Ok(EventHistoryResponse {
+        symbol: symbol.to_string(),
+        data,
+        has_more: response.has_next,
+        total_count: response.total,
+    })
+}
+
+/// 获取事件类型名称
+fn get_event_type_name(event: &SpinPetEvent) -> String {
+    match event {
+        SpinPetEvent::TokenCreated(_) => "TokenCreated".to_string(),
+        SpinPetEvent::BuySell(_) => "BuySell".to_string(),
+        SpinPetEvent::LongShort(_) => "LongShort".to_string(),
+        SpinPetEvent::ForceLiquidate(_) => "ForceLiquidate".to_string(),
+        SpinPetEvent::FullClose(_) => "FullClose".to_string(),
+        SpinPetEvent::PartialClose(_) => "PartialClose".to_string(),
+        SpinPetEvent::MilestoneDiscount(_) => "MilestoneDiscount".to_string(),
+    }
+}
+
 /// 连接清理任务
 pub async fn start_connection_cleanup_task(
     subscriptions: Arc<RwLock<SubscriptionManager>>,
