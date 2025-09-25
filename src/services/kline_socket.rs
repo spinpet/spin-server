@@ -1144,7 +1144,15 @@ impl EventHandler for KlineEventHandler {
         // 1. 调用现有的统计和存储逻辑
         self.stats_handler.handle_event(event.clone()).await?;
 
-        // 2. 提取价格信息并触发实时推送
+        // 2. 实时推送交易事件给订阅者
+        info!("📡 Broadcasting event to subscribers: {:?}", event);
+        if let Err(e) = self.kline_service.broadcast_event_update(&event).await {
+            warn!("❌ Failed to broadcast event update: {}", e);
+        } else {
+            info!("✅ Successfully broadcasted event update");
+        }
+
+        // 3. 提取价格信息并触发K线推送
         if let Some((mint_account, latest_price, timestamp)) = self.extract_price_info(&event) {
             info!(
                 "💰 Extracted price info: mint={}, price={}, timestamp={}",
