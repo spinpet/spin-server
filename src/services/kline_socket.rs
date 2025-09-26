@@ -590,6 +590,23 @@ impl KlineSocketService {
                     }
                 });
 
+                // General message handler to update activity on any client message
+                socket.on_any({
+                    let subscriptions = subscriptions.clone();
+                    
+                    move |socket: SocketRef, event_name: String, _: serde_json::Value| {
+                        let subscriptions = subscriptions.clone();
+                        
+                        tokio::spawn(async move {
+                            // Update activity for any client message except internal events
+                            if !event_name.starts_with("__") && event_name != "disconnect" {
+                                let mut manager = subscriptions.write().await;
+                                manager.update_activity(&socket.id.to_string());
+                            }
+                        });
+                    }
+                });
+
                 // 连接断开事件处理器
                 socket.on_disconnect({
                     let subscriptions = subscriptions.clone();
