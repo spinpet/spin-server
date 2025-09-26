@@ -368,6 +368,12 @@ impl KlineSocketService {
                                 socket.id, data.symbol, data.interval
                             );
 
+                            // Update client activity
+                            {
+                                let mut manager = subscriptions.write().await;
+                                manager.update_activity(&socket.id.to_string());
+                            }
+
                             // 验证订阅请求
                             if let Err(e) = validate_subscribe_request(&data) {
                                 let _ = socket.emit(
