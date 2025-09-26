@@ -63,7 +63,7 @@ pub struct IpfsConfig {
     pub max_retries: u32,
     pub retry_delay_seconds: u64,
 }
-
+ 
 #[derive(Debug, Deserialize, Clone)]
 pub struct KlineServiceConfig {
     pub enable_kline_service: bool,
