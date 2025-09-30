@@ -618,23 +618,6 @@ impl KlineSocketService {
         let mint_account = self.get_mint_account_from_event(event);
         info!("📡 Broadcasting event update for mint: {}", mint_account);
 
-        // 获取所有订阅了该 mint 的房间
-        let mut rooms_to_broadcast = Vec::new();
-        {
-            let manager = self.subscriptions.read().await;
-            if let Some(interval_map) = manager.mint_subscribers.get(&mint_account) {
-                for interval in interval_map.keys() {
-                    let room_name = format!("kline:{}:{}", mint_account, interval);
-                    rooms_to_broadcast.push(room_name);
-                }
-            }
-        }
-
-        if rooms_to_broadcast.is_empty() {
-            debug!("🚫 No subscribers for mint: {}, skipping event broadcast", mint_account);
-            return Ok(());
-        }
-
         let event_type_name = get_event_type_name(event);
         let event_message = EventUpdateMessage {
             symbol: mint_account.clone(),
@@ -643,10 +626,13 @@ impl KlineSocketService {
             timestamp: Utc::now().timestamp_millis() as u64,
         };
 
-        info!("📡 Broadcasting to {} rooms for event: {:?}", rooms_to_broadcast.len(), event_message.event_type);
+        // Use the same intervals as K-line push - broadcast to all possible intervals
+        let intervals = ["s1", "s30", "m5"];
+        let mut broadcast_count = 0;
 
-        // 广播到所有相关房间
-        for room_name in rooms_to_broadcast {
+        for interval in intervals {
+            let room_name = format!("kline:{}:{}", mint_account, interval);
+            
             let result = self
                 .socketio
                 .of("/kline")
@@ -658,6 +644,7 @@ impl KlineSocketService {
             match result {
                 Ok(_) => {
                     info!("✅ Successfully broadcasted event to room {}", room_name);
+                    broadcast_count += 1;
                 }
                 Err(e) => {
                     warn!("❌ Failed to broadcast event to room {}: {}", room_name, e);
@@ -665,6 +652,7 @@ impl KlineSocketService {
             }
         }
 
+        info!("📡 Event broadcast completed for mint: {}, sent to {} rooms", mint_account, broadcast_count);
         Ok(())
     }
 
